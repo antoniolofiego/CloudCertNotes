@@ -1,8 +1,8 @@
 # AWS Solutions Architect - Associate
 
-# AWS Overview
+# AWS Global Infrastructure
 
-## AWS Global Infrastructure
+## Overview
 
 - 24 Regions
     - Physical location in the world with 2 or more AZ
@@ -257,3 +257,64 @@
 - Deploy and enforce compliance controls for individual S3 Glacier vaults
 - Uses Vault lock policies that can't be changed once locked
 - Can specify controls such as WORM in the policy
+
+## S3 Performance Optimization
+
+- S3 prefixes
+    - The pathway between bucket name and object's key
+    - S3 has extremely low latency, 1st byte out within 100-200 ms
+        - High number of requests per second per prefix
+            - 3,500 PUT/COPY/POST/DELETE
+            - 5,500 GET/HEAD
+- Optimization strategies
+    - Spreading reads across prefixes
+        - More prefixes means more requests per seconds that can be handled
+        - Limitations with KMS
+            - Separate KMS API calls for upload and downloads
+                - Upload ⇒ `GenerateDataKey`
+                - Download ⇒ `Decrypt`
+            - The API has hard limits with requests per second (KMS Quota)
+                - Region specific, but either 5,500, 10,000 or 30,000 requests per second
+
+    - Multipart Uploads
+        - For files over 100MB
+        - Required for files over 5GB
+        - Allows for upload parellelization
+    - S3 Byte-Range Fetches
+        - Parallelize downloads by specifying byte ranges
+        - If download fails, it fails only in certain byte ranges
+        - Can be used to download partial files
+
+## S3 Select
+
+- Use SQL expressions to retrieve subset of data from objects
+- Performance boost of up to 400% and up to 80% cheaper than manipulating the full object
+
+## Glacier Select
+
+- Run SQL queries against Glacier directly
+- Used by companies in highly regulated industries where companies write data directly to Glacier for compliance purposes
+
+## Cross-Account S3 Bucket Sharing with AWS Organizations
+
+- Three ways to share S3 buckets across accounts
+    - Bucket Policies and IAM roles (across entire bucket) ⇒ Programmatic access only
+    - Bucket ACLs and IAM roles (individual objects) ⇒ Programmatic access only
+    - Cross-Account IAM roles ⇒ Programmating and console access
+
+## Cross-Region Replication (CRR)
+
+- Used to copy objects across Amazon S3 buckets in different AWS Regions
+- Requires versioning enabled in the bucket that we are trying to replicate
+- Used for
+    - Meeting compliance requirements
+        - Some compliance requirements dictate data storage to be in very distant locations
+    - Minimize latency
+        - If end users are in two geographic locations, they can access objects faster if there is a copy in a nearby region
+    - Increased operational efficiency
+        - Separate compute clusters in different regions can operate more efficiently on locally available data copies
+- On creation of the replication rule, we can change storage class for replicated objects and we can change object ownership
+- New buckets inherit the permission from souce bucket
+- Objects are already in the bucket are not automatically replicated to the target bucket, so they have to be uploaded manually
+- File modifications in one bucket are replicated to the other bucket
+- Delete markers and individual version deletions are not replicated across buckets
