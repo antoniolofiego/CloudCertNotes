@@ -3,10 +3,10 @@ A repository of the notes I take while preparing for AWS Certifications.
 
 Feel free to contribute with your own notes if you find something that could be useful for everyone!
 
-| Certification Name               	| Link 	|
-|----------------------------------|:------:|
-| AWS Certified Cloud Practitioner 	| https://git.io/JJv6B |
-| AWS Solutions Architect - Associate | https://git.io/JJfuM |
+| Certification Name               	| Link 	| Status |
+|----------------------------------|:------:|:-------:|
+| AWS Certified Cloud Practitioner 	| https://git.io/JJv6B | Complete ✔️|
+| AWS Solutions Architect - Associate | https://git.io/JJfuM | In-progress 🔨|
 
 ## Great study resources
 If you are getting started, I would definitely use these (open source)
