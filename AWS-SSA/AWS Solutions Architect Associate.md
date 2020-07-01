@@ -5,9 +5,12 @@
 ## Overview
 
 - 24 Regions
-    - Physical location in the world with 2 or more AZ
+    - Physical location in the world with 2 to 6 AZs, usually 3
+    - Most AWS services are region-scoped
 - 76 AZ
-    - Discrete data centers with redundant power, networking and connectivity, housed in separate facilities
+    - Discrete data centers with redundant power, networking and connectivity
+    - Housed in separate facilities and isolated from disasters
+    - Connected with high bandwidth, low latency networking
 - 205 Edge Locations
     - Endpoints for AWS used for caching CloudFront content
 - 11 Regional Edge Caches
@@ -25,7 +28,7 @@
 - Granular permission
 - Identity Federation
     - Users can log-in via third-party credentials such as work credentials, Active Directory, Facebook, LinkedIn, etc...)
-- Multifactor Authentication
+- Multifactor Authentication can be set up
 - Temporary access for user/devices when necessary
 - Set up custom password rotation policies
 
@@ -42,32 +45,9 @@
 - Groups
     - Collection of users that inhering a shared set of permissions
     - Can't be nested
-- Policies
-    - Determine authorizations
-    - Written in JSON
-    - Policy types
-        - Managed Policy
-            - AWS Managed
-            - Customer Managed
-        - Inline Policies
-            - Policies written directly on IAM users, groups or roles
-    - Can be created via
-        - Generator
-        - Hand written policies
-    - Evaluation logic
-        1. Default to implicit deny
-        2. Look for explicit deny
-        3. Look for explicit allow
-    - What not to do
-        - Embed credentials in
-            - Code
-            - ENV variables
-        - Share with
-            - Third parties
-            - Hundreds of enterprise users
-            - Millions of web users
 - Roles
     - Use temporary credentials
+    - Internal usage
     - Delegate permissions to
         - EC2 instance
         - AWS service
@@ -81,6 +61,23 @@
         - Role for Cross Account Access
             - Accounts that need a trust relationship to access different resources owned by other accounts
             - Policy on the role to allow access to resources and on the user to be allowed to assume the role
+- Policies
+    - Determine authorizations
+    - Written in JSON
+    - Are attached to users, groups or roles
+    - Policy types
+        - Managed Policy
+            - AWS Managed
+            - Customer Managed
+        - Inline Policies
+            - Policies written directly on IAM users, groups or roles
+    - Can be created via
+        - Generator
+        - Hand written policies
+    - Evaluation logic
+        1. Default to implicit deny
+        2. Look for explicit deny
+        3. Look for explicit allow
 
 ## AWS New Account first steps
 
@@ -92,16 +89,96 @@
 6. Log back in as admin user
 7. Create additional users/groups
 
+## IAM Federation
+
+- For large enterprises
+- Used to integrate your own repository of users with IAM
+- Can login into AWS using company credentials
+- Uses SAML standard (Eg: Active Directory)
+
 ## IAM Best Practices
 
 - Root credentials
     - Email address + password
     - Protect at all costs
     - Do not use for day-to-day
-- Follow principle of least privilege
+- Follow principle of least privilege ⇒ Provide users with the minimal amount of permissions to perform their job
+- One IAM User per physical person
+- One IAM Role per application
 - Rotate access keys
 - Enable MFA
 - Enable CloudTrail
+- What not to do
+    - Embed credentials in
+        - Code
+        - ENV variables
+    - Share with
+        - Third parties
+        - Hundreds of enterprise users
+        - Millions of web users
+
+# Elastic Compute Cloud (EC2)
+
+## What is EC2?
+
+- Most popular AWS offering
+- Allows you to launch instances of virtual machines
+
+## Methods of connection to EC2 instances
+
+- SSH ⇒ Mac, Linux, Windows 10
+- Putty ⇒ Windows ≤ 10
+- EC2 Instance Connect ⇒ All platforms
+    - Browser-based SSH connections
+    - Creates a temporary key that lets you log in without the secret key
+    - Only works on Amazon Linux 2 AMIs
+    - Does not work if SSH Port 22 is deleted
+
+## Security Groups
+
+- Firewalls at the instance level
+- Outside of instances, so you can't check unathorized inbound from inside an instance
+- Control inbound and outbound traffic of EC2 instances
+- Sets controls on allow, inbound and outbound ports
+- Defaults to inbound traffic blocked and outbound traffic authorized
+- Act on
+    - Port access
+    - Authorized IP ranges (IPv4, IPv6)
+    - Inbound/outbound network
+- Can be attached to multiple instances
+- Locked to region/VPC combinations
+- If application times out it is an security group issue
+- If application returns a "connection error" it's an app-level error or instance error (Not launched/terminated/stopped)
+- Can reference other security groups for load-balancing purposes
+
+## Private, Public and Elastic IPs
+
+- Two types of IPs in networking
+    - IPv4 ⇒ 122.168.1.1
+        - Most common format
+        - 2^32 unique addresses (~3.7 billion)
+    - IPV6 ⇒ 2001 : 0db8 : 85a3 : 0000 : 0000 : 8a2e : 0370 : 7334
+        - Most recent version
+        - 2^128 unique addresses (~340 undecillion)
+        - Solves IoT issues
+- Public IP
+    - Machine can be identified on the network
+    - Has to be unique globally
+    - Can be easily geolocated
+- Private IP
+    - Machine can be identified on the private network only
+    - Has to be unique in the network
+    - Two different private neworks can have the same IPs
+- Elastic IP
+    - A public IP for an instance that does not change when the instance is stopped
+    - It is a public IPv4 address that you own as long as you don't delete it
+    - Can be attached only to one instance at a time
+    - Can be remapped to another instance in case of an instance or software failure
+    - Up to 5 Elastic IPs per account (soft limit)
+    - Avoid using Elastic IPs as they are usually a sign of a poor architectural decision somewhere
+- Default EC2 configuration
+    - A private IP for AWS network ⇒ can't use this to SSH in the machine because we are not in the same network
+    - A public IP for the WWW
 
 # Simple Storage Service (S3)
 
@@ -318,3 +395,18 @@
 - Objects are already in the bucket are not automatically replicated to the target bucket, so they have to be uploaded manually
 - File modifications in one bucket are replicated to the other bucket
 - Delete markers and individual version deletions are not replicated across buckets
+
+## Transfer Acceleration
+
+- Uses CloudFront Edge Network to accelerate uploads to S3
+- Can use distinct URL to upload directly to edge location
+    - `bucketname.s3-accelerate.amazonaws.com`
+
+## DataSync
+
+- Allows to move large amount of data to AWS
+- Used on-premise
+- Install an AWS DataSync agent on your server and connect to the NAS to copy data to/from AWS
+- Automatically encrypts data and accelerates transfer over the WAS
+- Automatic data integrity checks in-transit and at-rest
+- In the AWS region, DataSync securely connects to S3, EFS or FSx for Windows File Server to copy data and metadata
