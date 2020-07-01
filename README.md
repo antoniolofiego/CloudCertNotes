@@ -20,7 +20,7 @@ If you are getting started, I would definitely use these (open source)
   * Certified Developer - Associate: https://rishabkumar7.github.io/CloudNotes/CDA.html
  
 If you have some budget, these are amazing (Note: I did not use all of them, and I am NOT affiliated with Udemy or any other provider)
-* Stephane Maarek Udemy Courses
+* Stephane Maarek's Udemy Courses
   * Certified Cloud Practitioner: https://www.udemy.com/course/aws-certified-cloud-practitioner-new/
   * Solutions Architect - Associate: https://www.udemy.com/course/aws-certified-solutions-architect-associate-saa-c02/
   * Certified Developer - Associate: https://www.udemy.com/course/aws-certified-developer-associate-dva-c01/
