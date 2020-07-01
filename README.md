@@ -1,7 +1,7 @@
 # AWS Certifications Notes
 A repository of the notes I take while preparing for AWS Certifications.
 
-Feel free to submit PRs if you find anything wrong/worth adding.
+Feel free to contribute with your own notes if you find something that could be useful for everyone!
 
 | Certification Name               	| Link 	|
 |----------------------------------|:------:|
