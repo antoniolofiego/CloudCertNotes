@@ -179,6 +179,214 @@
 - Default EC2 configuration
     - A private IP for AWS network ⇒ can't use this to SSH in the machine because we are not in the same network
     - A public IP for the WWW
+    - To allow HTTP access, an HTTP rule to allow all inboud traffic on port 80 has to be added to the security group
+
+## EC2 User Data
+
+- A script that can be attached to an instance when the machine starts
+- It only runs on the instance's first start with the root user ⇒ No need for `sudo su`
+- Used to automate boot tasks such as
+    - Updating the OS
+    - Installing packages
+- Need a #!/bin/bash shebang at the top of the script
+
+## EC2 Instance Launch Types
+
+- **On-Demand (least commitment)**
+    - Default pricing structure for EC2 instances
+    - No upfront cost and no commitment
+    - Pay per hour (forward hour) or per second (after first minute) depending on instance
+    - Best for short-term, spikey or unpredictable workloads and for testing/experimenting
+- **Reserved (best long-term)**
+    - For apps that have steady-state, predictable usage or need reserved capacity (eg: databases)
+    - Price is dependent on
+        - Term: length of commitment (1 or 3 year)
+        - Payment option: all upfront, partial upfront or no upfront
+        - Class offering:
+            - Standard ⇒ up to 75% cost reduction but can't change instance types
+            - Convertible ⇒ up to 54% and can change instance type to greater or equal in value
+            - Scheduled ⇒ used for specific time windows and for fraction of day/week/month
+    - Unused RIs can be sold in the RI Marketplace
+    - RIs can be shared between multiple accounts within an organization.
+- **Spot (biggest savings)**
+    - Spot instances provide up to 90% discount compared to on-demand
+    - AWS has unused compute capacity that it can sell to maximize utility of unused servers
+    - It is sold at a spot price that is defined by supply/demand
+    - You bid for a maximum price you want to pay
+    - Can be terminated at any time if the computing is needed by an on-demand customer and your max price is less than the current spot price
+    - Charged on hourly base, if your instance is terminated by AWS you don't get charged for partial hours.
+    - If spot price gets above your max price, you have a 2-minute grace period where you can choose to either stop or terminate the instance
+        - Stop if the workload needs to be resumed and the state of the machine is important
+        - Terminate if the workload is stateless and can be restarted with no problem
+    - Spot block
+        - Reserve the spot for a specified time frame without interruptions
+        - In extremely rare cases this might be reclaimed anyways
+    - Most useful for applications that are feasible only at very low computing costs
+        - Batch processing
+        - Image processing
+        - Flexible workloads
+        - Big data workloads
+    - Best combo ⇒ reserved instance for baseline + spot instances/on-demand for peaks
+    - Spot requests
+        - Need to specify
+            - Max price
+            - Number of instances
+            - Launch specification ⇒ AMI
+            - Validity period
+            - Request type
+                - One time
+                    - Request is fullfilled ⇒ Intance is launched ⇒ request is completed and closed
+                - Persistent
+                    - If instances are terminated requests are recreated until the validity period ends
+                    - To fully cancel a persistent request, cancel the request first and then terminate the instances otherwise the request gets fulfilled again
+        - If a request is canceled it does not automatically terminate the instances that were launched at earlier stages with it
+- **Dedicated (most expensive)**
+    - Used to meet regulatory requirements of server-bound licensing that does not support multitenancy or cloud deployment
+    - 3-year period reservations
+    - Basically like buying a dedicated hardware and you are physically separated from other customers
+    - Can't share across accounts
+
+## EC2 Instance Types
+
+- A good mnemonics is from ACloudGuru ⇒ FIGHT DR MC-PXZ (I pronounce it Fight Doctor McPixie)
+- F ⇒ Field Programmable Gate Array (FPGA)
+    - Big data, real-time video processing, financial analytics, etc...
+- I ⇒ High Speed Storage
+    - NoSQL, databases, data warehousing
+- G ⇒ Graphics Intensive
+    - Video encoding, 3D streaming
+- H ⇒ High throughput
+    - MapReduce, HDFS distributed file systems
+- T ⇒ Burstable general purpose
+    - General OK performance that adapt CPU to the needs of the process
+    - Comes with burst credits that accumulate over time
+        - Burstable
+            - CPU increases performance for spikes
+            - Uses a burst credit each burst
+            - If it bursts when out of credits, CPU performance drops to minimum
+        - Unlimited
+            - Unlimited CPU performance bursts
+            - More expensive
+    - Good for Web servers and databases with unexpected/spiky traffic
+- D ⇒ Dense storage
+    - Hadoop, file servers
+- R ⇒ Memory optimized
+    - Memory intensive apps
+- M ⇒ General purpose
+    - App servers
+- C ⇒ Compute optimized
+    - CPU intensive apps
+- P ⇒ Graphics and general purpose GPU
+    - Machine learning, deep learning, bitcoin mining
+- X ⇒ Memory optimized
+    - SAP Hana, Spark
+- Z ⇒ Sustained all-core frequency
+    - Electronic Design Automation (EDA), gaming, database workloads with high per-core licensing costs
+
+## EC2 Spot fleet
+
+- Combination of Spot instances and optional On-Demand instances
+- The Spot Fleet tries to meet targets within price constraints
+- Allows to dynamically request the most cost effective Spot instance
+- Spot fleet requests can have multiple launch pools
+- Stops launching instances when reaching either target capacity or max price
+- Launch pool
+    - Set of definitions of instances
+    - Includes
+        - Type
+        - AMI
+        - AZ
+- Spot Fleet strategies
+    - Lowest Price
+        - Lowest price pool
+        - Best for short workloads and cost optimization
+    - Diversified
+        - Multiple pools
+        - Best for consistent availability and long workloads
+    - Capacity Optimized
+        - Pool for optimal capacity for instance number
+
+## EC2 AMI
+
+- A required base image for the launch of an instance
+- Can be customized with instructions on specific settings and software
+- Can be use to launch multiple instances with the same configuration
+- Region-specific
+- Benefits of AMI
+    - Pre-installed packages and software
+    - Faster boot ⇒ faster than using User data
+    - Better security
+    - Known configurations
+    - Changes can be done in one place instead of reconfiguring multiple instances
+    - Many pre-made public free or rentable AMIs optimized for specific softwares/workloads
+- AMIs are stored in S3 and are by default private and locked to account/region
+- AMIs can be shared with other AWS accounts by modifying the image permission, but ownership does not change when it is shared
+- Copying an AMIs that has been shared makes you the owner of that AMI
+- You can't directly copy encrypted AMIs or AMIs that have an associated `billingProduct` code
+    - Encrypted ⇒ If you have the underlying encryption key, you can use it to re-encrypt it with a key of your own
+    - billingProduct ⇒ Can only copy from a running instance
+
+## EC2 Placement Groups
+
+- Custom EC2 placement strategies
+- Different strategies available
+    - Cluster
+        - Instances are in a low latency group in a single rack and a single AZ
+        - If a rack fails, all instances fail
+        - Good for low-latency, high network throughput dependent applications
+    - Spread
+        - Instances are spread across different hardware in different AZs (max 7 instances per AZ)
+        - Reduced risk for simultaneous failure
+        - Good for critical, high-available applications
+    - Partition
+        - Instances are spread across different partitions and racks within an AZ
+        - Partitions are failure-isolated, max 7 per AZ
+        - Scales to 100s of instances per group
+        - Instances access partition information as metadata
+        - Good for Hadoop, Kafka, Cassandra, HDFS
+
+## Elastic Network Interfaces (ENI)
+
+- Representation of a Virtual Network Card in a VPC through a logical component
+- Linked to a specific AZ
+- Each ENI has different attributes
+    - Primary private IPv4 IP address
+    - One or more secondary IPv4 IP addresses
+    - One Elastic IP (IPv4) per private IP
+    - One Public IPv4 IP
+    - A MAC address
+    - One or more security groups
+- ENIs are independent of instances and can be attached dynamically to EC2 instances for failover
+
+## EC2 Hibernate
+
+- Preserves in-memory state
+- Instance boot is extremely fast
+- It works by making a copy of the RAM state to the root EBS volume
+- Requirements
+    - Root volume has to be EBS encrypted and large enough to store the RAM dump
+    - C, M and R instance families (3 to 5)
+    - RAM < 150 GB
+    - Not supported for bare metal instances
+    - Amazon Linux 2, Linux, Ubuntu and Windows AMIs
+    - On-Demand and Reserved instances
+    - Can't hibernate longer than 60 days
+
+## Exam questions related to EC2 for Solutions Architect
+
+- EC2 Instances are billed by the second, t2.micro is free tier
+- SSH on Linux/Mac, PuTTY on Windows
+- SSH on Port 22, lock down security group to known IPs
+- Timeout issue ⇒ security group issue
+- Permission issue ⇒ `chmod 0400` issue
+- Security groups can target other security groups or IPs
+- Difference between Public, Private and Elastic IP
+- Use EC2 User Data to customize the first boot of an instance
+- EC2 Launch Types
+- EC2 Instance families
+- Custom AMIs (region scoped, but can be copied) ⇒ faster boots
+- EC2 Placement groups ⇒ cluster, spread, partition
+- EC2 Hibernate
 
 # Simple Storage Service (S3)
 
@@ -190,6 +398,7 @@
 - Object-based ⇒ upload files into buckets
     - Between 0 bytes and 5 TB
 - Unlimited storage
+- 
 
 ## S3 Basics
 
