@@ -389,6 +389,159 @@
 - EC2 Placement groups ⇒ cluster, spread, partition
 - EC2 Hibernate
 
+# Elastic Block Storage (EBS)
+
+## EBS Overview
+
+- Network drive used for persistent storage of EC2 data
+- Independent from EC2 instance but can be attached to one
+- AZ scoped
+- Billed per provisioned capacity (GB or IOPS)
+- Can scale the size over time
+
+## EBS Volume Types
+
+- Each is characterized in size, IOPS and throughput
+- Boot volumes
+    - GP2 (SSD) ⇒ General purpose
+        - Recommended for most workloads
+            - Virtual desktops
+            - Low-latency apps
+            - Dev/test environments
+        - 1GB - 16TB
+        - Small GP2s can burst to 3000 IOPS
+        - Max IOPS 16,000 for volume sizes greater than 5,334GB
+        - Below 5,334 we have up to 3 IOPS/GB
+    - IO1 (SSD) ⇒ High performance
+        - For critical business applications with sustained IOPS performance or more than 16,000 IOPS
+        - Large databases (MySQL, MongoDB, Cassandra,...)
+        - 4GB -16TB
+        - Provisioned IOPS 100 to 64,000 (for Nitro) or 32,000 (for non-Nitro instances)
+        - Max IOPS to volume ratio is 50:1
+- Non-Boot volumes
+    - ST1 (HDD) ⇒ Low-cost, frequently accessed high throughput
+        - For streaming workloads with fast throughput at low costs
+        - Big data, data warehouses (Apache Kafka)
+        - 500GB - 16TB
+        - Max IOPS is 500
+        - Max throughput is 500 MB/s and it can burst
+    - SC1 (HDD) ⇒ Low-cost, infrequently accessed
+        - Throughput optimized storage for large, infrequently accessed volumes of data
+        - Optimal if goal is low cost
+        - 500GB - 16TB
+        - Max IOPS is 250
+        - Max throughput is 250MB/s and it can burst
+
+## EBS Encryption
+
+- On EBS creation
+    - Data at rest is encrypted
+    - Data In flight is encrypted
+    - Volumes created from (un)encrypted snapshots are (un)encrypted
+    - Snapshots of (un)encrypted volumes are (un)encrypted
+    - Copies of unencrypted snapshot can be encrypted
+- Low impact on latency
+- Automated
+- Uses KMS (AES-256)
+- Steps to encrypt unencrypted EBS Volume
+    1. Create snapshot
+    2. Encrypt the snapshot (copying it will automatically encrypt it)
+    3. Create an EBS from the snapshot (will inherit encryption)
+
+## EBS Snapshots
+
+- Incremental ⇒ backups only changed blocks
+- EBS backup should not be used while there is a lot of traffic because it consumes IO
+- Stored in S3 but hidden
+- Recommended, but not necessary, to detach the volume to take a snapshot
+- Max 10,000 snapshots
+- Can copy snapshots across AZs/Regions
+- Can make AMI from snapshot
+- Snapshot taking can be automated with AWS Data Lifecycle Manager
+- EBS volumes restored by snapshot need to be pre-warmed (`fio` or `dd` to read full volumes)
+
+## EBS Migration
+
+- Steps to migration
+    1. Snapshot the volume
+    2. Optionally copy the volume to a different region
+    3. Create a volume from a snapshot in the AZ you want
+
+## EBS RAID
+
+- Used for increasing IOPS or to mirror EBS volumes
+- Support is OS dependent
+- RAID 0 and 1 are most common options
+    - RAID 0 ⇒ Increased performance
+        - Combine two or more volumes and get combined disk space and I/O
+        - If any disk fail, all data fails
+        - Good for high IOPS tasks without fault-tolerance or already replicated DBs
+    - RAID 1 ⇒ Increase fault tolerance
+        - Mirror data to two or more volumes
+        - If any disk fail, data will persist in others
+        - Uses x times the network, where x is the number of volumes in the RAID
+        - Good for fault-tolerance dependent applications
+- RAID 5, 6 and 10 are not recommended
+
+## Instance Store (ephemeral storage)
+
+- Some instances use Instance stores instead of EBS volumes
+- Instance store is block storage that is destroyed when the machine is stopped or terminated
+- Physically attached to a machine
+- Significantly high IOPS performance because they are physical (up to 2 million+)
+- Good for buffer/cache data
+- Data persists reboot
+- Can't be resized or backed up automatically
+- Risk of data loss if hardware fails ⇒ Replicate across instances if data is sensible/important
+- Up to 7TB but can be stripped up to 30TB
+
+# Elastic File System (EFS)
+
+## EFS Overview
+
+- Fully managed network file system that can be mounted on many EC2 instances in many AZ
+- Highly available and scales automatically, but very expensive and on a pay-per-use basis ⇒ No capacity planning
+- Uses NFSv4.1 protocol
+- Attach a security group to the EFS to accept connections from EC2 instances
+- All EC2 instances that are connected share the same files
+- Useful for content management, data sharing and web servers
+- Only on Linux AMIs ⇒ Uses POSIX FS with standard API
+- Can be encrypted by KMS
+
+## EFS Performance and Storage Classes
+
+- EFS scale
+    - 1000s of concurrent NFS clients with 10GB/s+ throughput
+    - Can grow to PB-scale NFS automatically
+- EFS performance modes
+    - General purpose ⇒ Latency optimized (web served, CMS)
+    - Max I/O ⇒ Higher latency, higher throughput, higly parallel (Big data, etc..)
+- EFS storage tiers ⇒ Can move around with Lifecycle Management
+    - Standard: regular frequently accessed files
+    - Infrequent Access (EFS-IA): fee on file retrieval, lower storage costs
+
+## EBS, EFS and Instance Store for Solution Architect Exam
+
+- EBS
+    - Can be attached to one instance at a time
+    - Locked at the AZ level
+    - GP2 ⇒ IO increases as disk size increases
+    - IO1 ⇒ IO can increase independently of disk size
+    - Migration to different AZ works via snapshot restoration
+    - Root EBS volumes get terminated by default if instance is terminated
+- EFS
+    - Can be attached to 100s of instances across AZ
+    - Files are shared across instances
+    - Only for Linux
+    - More expensive than EBS
+    - Can cost-manage via Lifecycle management and EFS-IA
+- Instance Store
+    - Physical storage attached to EC2 instance
+    - Files are lost on stop or termination
+    - Faster I/O because of physical drive
+    - Data persists on reboot
+    - Can't be resized or automatically backupped
+
 # Simple Storage Service (S3)
 
 ## What is S3?
