@@ -1017,6 +1017,42 @@
         - Can use T2 Unlimited Burst features
         - Is recommended by AWS
 
+# AWS Databases
+
+## Questions to ask when choosing a database
+
+- Read-heavy, write-heavy or balanced?
+- Throughput needs?
+- Does it need to scale for short periods of times?
+- How much data do you need to store and for how long?
+- Is it likely to grow over time?
+- What is the average size of the object stored in the database?
+- How frequently are they accessed and who can access them?
+- Latency requirements?
+- Concurrent users?
+- Data durability?
+- Source of truth?
+- Data model?
+- Schema?
+- RDBMS or NoSQL?
+- Transactional, analytical or search?
+- Licensing costs?
+
+## Common Database Solutions
+
+- RDBMS
+    - RDS, Aurora
+- NoSQL
+    - DynamoDB, ElastiCache, Neptune
+- Object Store
+    - S3 or S3 Glacier
+- Data Warehouse
+    - Redshift, Athena
+- Search
+    - ElasticSearch
+- Graph
+    - Neptune
+
 # Relational Database Service (RDS)
 
 ## RDS Overview
@@ -1044,7 +1080,7 @@
         - Automatic failover in AZ failure, network failure, instance or storage failure
         - Self-healing app dynamics ⇒ Automatic interventions
         - Not used for scaling, just fault-tolerance
-    - Can scale vertically and horizontally
+    - Can scale vertically and horizontally but does not auto-scale
     - Backed by EBS
 - Can use multiple DB engines
     - PostgreSQL
@@ -1108,6 +1144,25 @@
 8. Connectivity (VPC , security groups, public access, AZ, ports)
 9. Database options (Authentication, backups, monitoring, automatic maintenance, deletion protection)
 
+## RDS Use Cases
+
+- Store relational datasets (RDBMS, OLTP)
+- SQL queries
+- Transactional inserts/update/delete
+
+## RDS for Solution Architect
+
+- Operations
+    - Small downtime in most operations (failover, maintenance) but some operations are manual (scaling read replicas, EC2, EBS restore)
+- Security
+    - KMS, security groups, IAM policies, user authorizations and SSL
+- Reliability
+    - Multi AZ feature, failover in case of failure
+- Performance
+    - Depends on EC2 instances, EBS volumes and Read Replicas types
+- Cost
+    - Pay per hour based on EC2/EBS
+
 # Amazon Aurora
 
 ## Aurora Overview
@@ -1151,3 +1206,144 @@
 - Up to 5 secondary read-only Regions with less than 1 second replication lag
 - Up to 16 read replica per secondary region ⇒ Decrease latency
 - Promoting another region to primary has Recovery Time Objective (RTO) of < 1 min
+
+## Aurora Use Cases
+
+- Same as RDS, but more flexible and performant while needing less maintenance
+
+## Aurora for Solution Architect
+
+- Operations
+    - Fully managed, so less operations
+    - Auto-scaling storage
+- Security
+    - KMS, security groups, IAM policies, user authorizations and SSL
+- Reliability
+    - Multi AZ feature, highly available, Serverless options
+- Performance
+    - Up to 15 Read Replicas, up to 5x performance of RDS
+- Cost
+    - Pay per hour based on EC2/EBS
+
+# AWS ElastiCache
+
+## ElastiCache Overview
+
+- Managed Redis or Memcached caches
+- In-memory key-value databases with really high performance and low latency
+- Reduce load on read-intensive workloads ⇒ Reads from RAM are faster
+- Used for stateless applications
+- Write scaling with sharding, read scaling with Read Replicas
+- Multi-AZ with failover
+- Automatically patched with zero downtime and maintained
+- Advanced monitoring features
+
+## Cache Security
+
+- Does not support IAM authentication
+- IAM policies on ElastiCache are for API-level security
+- SSL in-flight encryption
+- Redis AUTH ⇒ password/token on cluster creation
+- Memcached supports SASL-based authentication
+
+## Redis vs Memcached
+
+- Redis ⇒ More RDS like, possible backup
+    - Multi-AZ with auto-failover
+    - Data durability with Redis AOF persistence
+        - Every write operation received by the server is logged
+        - At server startup, they are replayed
+    - Read Replicas for high availability
+    - Backup and restore features (Redis RDB)
+- Memcached ⇒ Pure cache, built to speed up applications, lost on server down
+    - Multi-node partitioning ⇒ Sharding
+    - Non persistent cache
+    - No backup or restore
+    - Multithreaded
+    - Architectural Patterns
+        - Lazy Loading
+            - All read data is cached (can be stale)
+        - Write through
+            - Update cache data when written to DB (no stale)
+        - Session Store
+            - Temporary session data (using time to live settings)
+
+## ElastiCache Use Cases
+
+- Query storage ⇒ reduce same read workloads
+    - ElastiCache sits in front of an RDS
+    - An application first queries ElastiCache
+    - If the queried data is present in ElastiCache, it returns it
+    - If the queried data is not present in Elasticache, it queries RDS and writes the query results in ElastiCache
+    - Need to implement invalidation rules in the cached queries to ensure correct data is returned
+- User Session ⇒ Stateless applications need to know that a user is logged in
+    - An user logs in in an application
+    - The application writes session data to ElastiCache
+    - All other applications attempt to retrieve the session data before relogging the user in
+
+## ElastiCache for Solution Architect
+
+- Operations
+    - Small downtime in most operations (failover, maintenance) but some operations are manual (scaling read replicas, EC2, EBS restore)
+- Security
+    - KMS, security groups, IAM policies, no IAM Auth but Redis Auth and SSL
+- Reliability
+    - Clustering, sharing, multi-AZ
+- Performance
+    - Sub-ms performance, read replicas for sharding, in-memory
+- Cost
+    - Pay per hour based on EC2/EBS
+
+# **DynamoDB**
+
+## DynamoDB Overview
+
+- Fully managed serverless NoSQL data store
+- Exclusively backed by SSD volumes
+- Single-digit millisecond response time at any scale
+- Built-in security, resiliency, fault-tolerance, durability
+- Replicated across multiple AZs
+- No limits to storage and throughput
+- Need to provision reads and writes throughput (pay for provisioned)
+- Since 2018 also on-demand capacity
+- Reads are eventually consistent or strongly consistent
+- Throughput can auto-scale
+- Security is handled through IAM
+- DynamoDB Streams integrate with Lambda
+
+## DynamoDB Tables
+
+- Tables, items, attribute
+- No joins/relationships
+- Schema-less
+- Key value and documents
+- Unique primary key is required
+- Secondary indexes
+- Query on primary key, sort key or indexes
+- No table size limit
+- 400KB item size limit
+- Item-level TTL
+- Global Table can be enabled when using DynamoDB Streams
+- Can replace ElastiCache as key/value store using DAX (Acccelerated Clusters)
+
+## DynamoDB Use Cases
+
+- Serverless applications, distributed serverless cache
+- Ad impression/clickthrough
+- Gaming leaderboards
+- Shopping carts
+- Operational state/history (Jenkins jobs logs, CI/CD logs)
+- Session/state storage
+
+## DynamoDB for Solution Architect
+
+- Operations
+    - No operations needed, auto-scaling, serverless
+- Security
+    - KMS, security groups, IAM policies, and SSL in-flight
+- Reliability
+    - Backups, multi-AZ
+- Performance
+    - Single-digit ms performance at any scale
+- Cost
+    - Pay per provisioned capacity and storage usage, can auto-scale
