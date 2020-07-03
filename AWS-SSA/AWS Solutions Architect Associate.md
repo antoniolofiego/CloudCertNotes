@@ -1107,3 +1107,47 @@
 7. Multi-AZ deployment (not available in free tier)
 8. Connectivity (VPC , security groups, public access, AZ, ports)
 9. Database options (Authentication, backups, monitoring, automatic maintenance, deletion protection)
+
+# Amazon Aurora
+
+## Aurora Overview
+
+- Proprietary software
+- Fully managed ⇒ More expensive than RDS but more efficient
+- Compatible with drivers for MySQL and PostgreSQL
+- Cloud-native and optimized when compared to MySQL (5x) and PostgreSQL (3x)
+- Automatically scales in 10GB increments up to 64TB ⇒ Push-button scaling
+- Automatically patched with zero downtime and maintained
+- Advanced monitoring features
+- Backtrack ⇒ point-in-time restore without using backups
+- Default multi-AZ deployment, native high availability
+    - 6 copies of data across 3 AZs
+    - Only needs 4/6 copies for writes, 3/6 for reads
+    - Self-healing with P2P replication in case of data corruption
+    - Storage is striped across 100s of volumes
+- Up to 15 read replicas and super low-latency replication (sub 10ms replica lag)
+    - Write to one instance and replicates to all other AZs
+    - Replicas can auto-scale
+    - If master fails, replicas become new master
+    - Fast failover (<30s)
+    - Supports Cross-Region Replication
+- Aurora DB Cluster
+    - Writer endpoint ⇒ DNS endpoint that always points at the master
+    - Reader endpoint ⇒ DNS endpoint that helps with connection load balancing and connects automatically to all the Read Replicas
+- Aurora Security
+    - Very similar to RDS
+    - You are responsible for correct configuration of Security Groups
+
+## Aurora Serverless
+
+- Automated database instantiation on a pay-per-second basis
+- Scales based on usage ⇒ No capacity planning
+- Good for intermittent and unpredictable workloads
+
+## Aurora Global Database
+
+- Best way to do Cross-Region Replication
+- One primary Region for Read/Write
+- Up to 5 secondary read-only Regions with less than 1 second replication lag
+- Up to 16 read replica per secondary region ⇒ Decrease latency
+- Promoting another region to primary has Recovery Time Objective (RTO) of < 1 min
