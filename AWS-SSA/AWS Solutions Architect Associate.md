@@ -1016,3 +1016,94 @@
         - Can instantiate both On-Demand and Spot instances
         - Can use T2 Unlimited Burst features
         - Is recommended by AWS
+
+# Relational Database Service (RDS)
+
+## RDS Overview
+
+- Managed DB service for relational databases
+- DBs managed by AWS in the cloud ⇒ Advantages over deploying own DB on EC2
+    - Automatic OS patching
+    - Automatic provisioning
+    - Automatic DB software updates
+    - Continuous backups with point-in-time recovery
+    - Read replicas for read performance
+        - Key goal is to scale reads
+        - Work only with SELECT statements (read-only)
+        - Read replicas can be Within AZ, Cross AZ and Cross Region
+        - Async reads with eventual read consistency
+        - Replicas can be transformed in fully independent DB and lose replication
+        - Applications using read replicas must have connections to all read replicas
+        - Main use case ⇒ Two applications using the same database for different workload
+        - Network costs associated with cross-AZ/cross-Region data transfer ⇒ Cheaper to make Within AZ Read Replicas
+        - Can set Read Replicas as Multi-AZ for disaster recovery
+    - Multi-AZ for disaster recovery
+        - Key goal is fault-tolerance
+        - Sync replication ⇒ When change happens in master it happens automatically in all standby
+        - Single DNS name ⇒ Automatic failover to standby ⇒ Increased availability
+        - Automatic failover in AZ failure, network failure, instance or storage failure
+        - Self-healing app dynamics ⇒ Automatic interventions
+        - Not used for scaling, just fault-tolerance
+    - Can scale vertically and horizontally
+    - Backed by EBS
+- Can use multiple DB engines
+    - PostgreSQL
+    - MySQL
+    - Oracle
+    - Microsoft SQL Server
+    - MariaDB
+    - AWS Aurora (Proprietary, fully-managed)
+
+## RDS Backups
+
+- Auto-enabled
+- Daily full backups
+- Transaction logs updated every 5 minutes
+- 7 day retention, max 35 days
+- DB snapshots are manually triggered by user but can be retained as long as you want
+
+## RDS Security and Encryption
+
+- IAM and Networking
+    - Best practice is for RDS to be deployed in private subnets, not public
+    - Security is driven by security groups
+    - IAM policies control who can manage the RDS, using RDS API
+    - IAM-based authentication for MySQL and PostgreSQL
+        - Uses Auth Tokens obtained by IAM and RDS API calls
+        - Auth Tokens last 15 minutes
+        - Enforces network in/out SSL encryption
+        - Uses IAM to manage users instead of DBMS ⇒ Easier integration with IAM Roles
+- At rest encryption
+    - Can encrypt master and read replicas using KMS (AES-256)
+    - Defined at launch
+    - Master needs to be encrypted for read replicas to be encrypted
+    - Transparent Data Encryption (TDE) for Oracle and Microsoft SQL Server
+- In flight encryption
+    - SSL certificates
+    - Provide SSL options when connecting to DB
+    - If SSL needs to be enforced
+        - PostgreSQL
+            - `rds.enforce_ssl=1` in Parameter group of RDS Console
+        - MySQL
+            - `GRANT USAGE ON *.* TO 'mysqluser'@'%' REQUIRE SSL;` in the DB
+- General Encryption Operations
+    - RDS operates on EBS ⇒ EBS encryption rules are enforced
+    - To encrypt an unencrypted RDS
+        - Take snapshot of unencrypted DB
+        - Encrypt the copy and restore the database from the encrypted copy
+        - Migrate applications to restored version and delete the old one
+
+## Creating an RDS database
+
+1. Standard create (custom settings) or Easy create (recommended best practices)
+2. Choose DB Engine (PostgreSQL and MySQL are the only free-tier eligible)
+3. Templates
+    - Production
+    - Dev/Test
+    - Free Tier
+4. Credential Settings (regular DBMS settings such as admin, passwords and similar)
+5. EC2 Instances to back the DB
+6. Storage (can set automatic scaling)
+7. Multi-AZ deployment (not available in free tier)
+8. Connectivity (VPC , security groups, public access, AZ, ports)
+9. Database options (Authentication, backups, monitoring, automatic maintenance, deletion protection)
