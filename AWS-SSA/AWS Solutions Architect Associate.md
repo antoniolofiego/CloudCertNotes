@@ -1347,3 +1347,76 @@
     - Single-digit ms performance at any scale
 - Cost
     - Pay per provisioned capacity and storage usage, can auto-scale
+
+# AWS Route 53
+
+## Route 53 Overview
+
+- Managed DNS
+- Domain Name Registrar
+    - Can buy domains
+    - Can import 3rd party domains and use Route 53 as DNS provider by updating 3rd party registrar NS records
+- AWS most common DNS records
+    - A ⇒ IPv4
+    - AAAA ⇒ IPv6
+    - CNAME ⇒ Hostname to another hostname
+    - Alias ⇒ Hostname to AWS resource
+- Can use public domains (www.example.com) or private domains (resolved in your VPC)
+- Different features
+    - Load balancing
+    - Health checks
+        - Default interval is 30s (can be set to 10s for $$$)
+        - 15 health checkers are launched in the backend ⇒ avg 1 request every 2 seconds
+        - An endpoint is considered
+            - Unhealthy if it fails 3 checks in a row
+            - Healthy if it passes 3 checks in a row
+        - HTTP, HTTPS and TCP checks with no SSL certificate
+        - Can be integrated in CloudWatch
+    - Routing policies
+- Pay $0.50/month/hosted zone
+
+## DNS TTL
+
+- Along with the DNS response, we send a TTL that specifies how long that response will live in the browser cache
+- High TTL ⇒ Less traffic on DNS but chances of outdated records
+- Low TTL ⇒ More traffic on DNS but low chances for outdated records/easy to change records
+
+## CNAME vs Alias
+
+- CNAME
+    - Point hostname to another hostname
+    - Only for non-root domain (xxx.domain.com, not directly domain.com)
+- Alias
+    - Hostname to AWS Resource
+    - Works for both root and non-root domains
+    - Free, comes with health checks
+
+## Routing Policies
+
+- Simple
+    - Use when routing a single resource
+    - Can't attach health checks
+    - If multiple values are returned, client chooses a ranom one
+- Weighted
+    - Control % of requests that go to a specific endpoint
+    - Can be associated with health checks
+    - Use cases
+        - Test % of traffic on new application versions
+        - Split traffic among regions
+- Latency
+    - Redirect to server with the least latency to the end user
+    - Determined in terms of user to their AWS Region
+    - Can be associated with health checks
+- Failover
+    - Redirect traffic from a primary unhealthy endpoint to a healty secondary one
+    - Needs a health check associated with it
+- Geolocation
+    - Redirect to specific endpoints based on location
+    - Different from latency because it does not check whether that endpoint has the best performance for the user
+    - Best approach is to create a base case if there's no match for the user's location
+    - Ideal for serving localized and location-sensitive content
+- Multi-Value
+    - Routing to multiple resources ⇒ More advanced version of Simple routing
+    - Can attach health checks
+    - Up to 8 healthy records are returned for each Multi-Value query
+    - Useful in conjunction with ELB but not a substitute
