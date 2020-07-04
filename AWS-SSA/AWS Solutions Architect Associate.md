@@ -568,10 +568,9 @@
         - Access Control Lists (ACLs)
         - Torrents
     - On successful upload, returns an HTTP 200 response
+    - Objects in a bucket are private by default
+    - Opening them creates a pre-signed URL
     - Not for operating systems or databases ⇒ block storage is more appropriate
-- Data Consistency Model for S3
-    - **Read after Write consistency** for PUTS
-    - **Eventual consistency** for overwrite PUTS and DELETES
 - Guarantees
     - Built for 99.99% availability
     - Amazon guarantees 99.9% availability
@@ -580,97 +579,229 @@
     - Tiered Storage Available
     - Lifecycle Management
     - Versioning
-    - Encryption
-    - MFA for Deletion
-    - Secure data using
-        - Access control lists ⇒ fine grain object-level permissions
-        - Bucket Policy ⇒ bucket-level access
-- S3 Storage Classes
-    - S3 Standard
-        - 99.99% availability
-        - 99.99999999999% durability
-        - Stored redundantly across multiple devices in multiple facilities
-        - Can sustain loss of 2 concurrent facilities
-    - S3 - Infrequently Accessed (IA)
-        - For data that is not accessed frequently but needs rapid access when needed
-        - Lower fee compared to standard S3 but fee on retrieval
-    - S3 - Intelligent Tiering
-        - Automatically moves data to most cost-effective access tier with no performance impact
-    - S3 OneZone - IA
-        - For data that is not accessed frequently and does not require multi-AZ resilience
-        - Even lower cost but fee on retrieval
-    - S3 Glacier
-        - Secure, durable and low cost storage for data archiving
-        - Very cheap but fee on retrieval and retrieval can be extremely slow
-    - S3 Glacier Deep Archive
-        - Cheapest storage option
-        - Retrieval time of 12 hours
-- S3 charges
-    - Storage
-    - Requests
-    - Storage Management Pricing ⇒ tiers
-    - Data transfer pricing
-    - Transfer Acceleration
-        - Fast, easy and secure transfer of files over long distances between an S3 bucker and end users
-        - Uses CloudFront edge locations
-        - As data arrives to edge location it is routed to S3 over optimized network paths
-    - Cross Region Replication
-        - Automatically replicate buckets in different regions for redundancy or disaster recovery
-- S3 pricing
-    - S3 Standard
-        - 50 TB / 450 TB / 500 TB increments
-    - S3-IA
-        - Constant price GB/Month
-    - S3 Intelligent Tiering
-        - 50 TB / 450 TB / 500 TB increments
-    - S3 OneZone-IA
-        - Constant price GB/Month
-    - S3 Glacier
-        - Constant price GB/Month
-    - S3 Glacier Deep Archive
-        - Constant price GB/Month
+    - Encryptions
 
-## S3 Security and Encryption
+## S3 Data Consistency Model
 
-- Basics
-    - All newly created buckets are private
-    - Can setup access control via Bucket Policies and Access Control Lists
-    - Can be configured to create access logs which log all requests made to the S3 bucket
-    - These can be sent to another bucket or another account
-- Encryptions
-    - Encryption In Transit
-        - SSL/TLS
-    - Encryption At Rest (server side)
-        - S3 Managed Keys (SSE-S3)
-        - AWS Key Managed Service (SSE-KMS)
-        - Server Side Encryption with Customer Provided Keys (SSE-C)
-    - Encryption at Rest (client side)
-        - Data is encrypted before being uploaded to S3
+- Read after Write consistency for PUTS
+    - As soon as you upload a new object,  you can immediately retrieve it via GET request on
+    - PUT 200 ⇒ GET 200
+- Eventual consistency for overwrite PUTS and DELETES
+    - If we read an object after updating it or deleting it, you might still get the old version
+    - PUT 200 ⇒ GET 200 (old version) or DELETE 200 ⇒ GET 200
+- There are no ways of requesting Strong consistency, it is built this way in the S3 data model
+
+## S3 Storage Classes
+
+- S3 Standard
+    - 99.99% availability
+    - 99.99999999999% durability
+    - Stored redundantly across multiple devices in multiple facilities (≥ 3 AZs)
+    - Can sustain loss of 2 concurrent facilities
+    - Charged in 50 TB / 450 TB / 500 TB increments
+    - Use cases
+        - Big data analytics
+        - Content distribution
+- S3 - Infrequent Access (IA)
+    - 99.9% availability
+    - Minimum 30 days storage
+    - For data that is not accessed frequently but needs rapid access when needed
+    - Lower fee compared to standard S3 but fee on retrieval per GB
+    - Can sustain loss of 2 concurrent
+    - Charged at constant price GB/Month
+    - Use cases
+        - Disaster recovery
+        - Backups
+- S3 - Intelligent Tiering
+    - 99.9% availability
+    - Minimum 30 days storage
+    - Automatically moves data to most cost-effective access tier with no performance impact
+    - Monitoring and auto-tiering monthly fee
+    - Can sustain AZ-wide outage event
+    - Charged in 50 TB / 450 TB / 500 TB increments
+    - Use cases
+        - Both S3 Standard and S3 IA use cases
+- S3 OneZone - IA
+    - 99.5% availability
+    - Minimum 30 days storage
+    - For data that is not accessed frequently and does not require multi-AZ resilience
+    - Even lower cost but fee on retrieval per GB
+    - Supports SSL for in-transit and encryption at rest
+    - Charged at constant price GB/Month
+    - Use cases
+        - Secondary backup copies of on-premise data
+        - Storing data that can be recreated
+- S3 Glacier
+    - Secure, durable and low cost storage for data archiving
+    - Minimum storage of 90 days
+    - Very cheap but fee on retrieval per GB
+    - Different retrieval options
+        - Expedited ⇒ 1 to 5 minutes
+        - Standard ⇒ 3 to 5 hours
+        - Bulk ⇒ 5 to 12 hours
+    - Each item is called an Archive (up to 40GB) and archives are stored in Vaults
+    - Charged at constant price GB/Month
+    - Long term data retaining
+    - Use cases
+        - Alternative to on-premise magnetic tape storage
+        - Data archival
+- S3 Glacier Deep Archive
+    - Super-long term storage, extremely cheap
+    - Minimum storage of 180 days
+    - Different retrieval options
+        - Standard ⇒ 12 hours
+        - Bulk ⇒ 48 hours
+    - Charged at constant price GB/Month
+    - Use cases
+        - Long-term compliance data archival
+
+## S3 Charges
+
+- Storage
+- Requests
+- Storage Management Pricing ⇒ tiers
+- Data transfer pricing
+- Transfer Acceleration
+    - Fast, easy and secure transfer of files over long distances between an S3 bucker and end users
+    - Uses CloudFront edge locations
+    - As data arrives to edge location it is routed to S3 over optimized network paths
+- Cross Region Replication
+    - Automatically replicate buckets in different regions for redundancy or disaster recovery
+
+## S3 Lifecycle Rules
+
+- Used to manage automated or deletion of stored objects or or transition to different storage classes through lifecycle rules
+- Different types of actions
+    - Transition actions ⇒ When objects are transitioned to another storage class
+    - Expiration actions ⇒ When objects expire (are deleted)
+- Can be applied to specific sets of prefixes or certain object tags
+- Can be used in conjunction with versioning with separate rules for current and old versions of files
+- Can clean incomplete multi-part uploads
+
+## S3 Encryption
+
+- S3 offers 4 different type of at-rest encryptions
+    - S3 Managed Keys (SSE-S3)
+        - Server side
+        - Uses AES-256 encrypted keys managed by AWS
+        - Uses header `"x-amz-server-side-encryption":"AES256"`
+    - AWS Key Managed Service (SSE-KMS)
+        - Server side
+        - Uses KMS encrypted keys
+        - Leverages KMS user control and audit trail
+        - Uses header `"x-amz-server-side-encryption":"aws:kms"`
+    - Server Side Encryption with Customer Provided Keys (SSE-C)
+        - Uses data keys fully managed by customer outside of AWS
+        - S3 doesn't store the key you provide
+        - Transfer data only via HTTPS and key has to be provided in HTTP header with every request
+    - Client Side Encryption
+        - Uses client libraries such as Amazon S3 Encryption Client
+        - Client must encrypt/decrypt data when uploading/retrieving from S3
+        - Customer fully manages keys and encryption cycle
+- Encryption in-flight
+    - S3 also exposes a non-encrypted HTTP endpoint and a SSL/TLS encrypted HTTPS endpoint for data transfer from client to S3
+    - HTTPS endpoint offers encryption in-flight and is recommended
+- Default encryption
+    - Allows you to automatically encrypt objects as they are uploaded to S3
+    - Evaluated after Bucket Policies
+
+## S3 Security
+
+- User Based
+    - IAM policies ⇒ IAM-based rulesets
+        - IAM principle can access S3 objects if IAM permissions ALLOW it or the resource policy ALLOWs it AND there are no explicit DENY
+- Resource Based
+    - Bucket policies ⇒ Allow cross account, bucket wide policies
+        - JSON-based
+        - Follow the structure
+            - Sid ⇒ Policy name
+            - Effect ⇒ Allow/Deny
+            - Principal ⇒ AWS account or IAM User/Group/Role
+            - Action ⇒ Set of actions that are allowed/denied (Eg: `s3:GetObject`)
+            - Resource ⇒ AWS ARNs to which the policy is applied (in S3, buckets and objects)
+            - Condition (optional) ⇒ Situations where policy applies or not
+        - Used to enforce rules (like encryption at upload) or grant access to public or another account
+    - Bucket setting ⇒ Created to prevent data leaks
+        - Can be set at account level
+        - Block public access to buckets and objects granted via
+            - New Access Control Lists
+            - Any Access Control List
+            - New public bucket or access point policy
+        - Block public and cross-account access through any public bucket or access point policy
+        - Best setting if you know that the bucket should never be public
+    - Access Control lists ⇒ Not as used anymore
+        - Object Access Control List ⇒ Really fine control on who can access specific objects
+        - Bucket Access Control List ⇒ Really fine control on who can access the bucket
+- General security settings
+    - Networking
+        - Supports VPC endpoints
+    - Logging and Auditing
+        - S3 Access Logs can be stored in other buckets'
+        - API calls logged by CloudTrail
+    - User security
+        - MFA delete in versioned S3 Buckets
+        - Pre-signed URLS for limited time access
+
+## S3 Pre-Signed URLs
+
+- Can be for downloads (via CLI) or uploads (more complicated, only via SDK)
+- Valid for a default 3600 seconds but can change via `—expires-in <seconds>` argument
+- Any user with a pre-signed URL inherits permissions of the user that generated that pre-signed URL for GET/PUT
+- Use cases
+    - Download premium content for logged-in users
+    - Dynamic URL generation to download files
+    - Allow temporary upload rights to specific buckets
+- Generated through CLI or SDK
+    - `aws configure default.s3.signature_version s3v4` ⇒ KMS-compatible signature type
+    - `aws s3 presign <AWS ARN> —expires-in <seconds> —region <region>` ⇒ Creates the signed URL for the bucket in the specified region
+
+## S3 MFA-Delete
+
+- Forces user to go through MFA before doing certain actions on S3 buckets and objects
+    - Object deletion
+    - Suspending Versioning
+- Reversible actions such as enabling Versioning or placing delete markers don't need MFA
+- Needs Versioned S3 buckets
+- Can be enabled or disabled only by the root account, not by administrator accounts
+- Can be enabled only via CLI ⇒ Implies having Access Keys for root account which is not suggested
+- Needs to be operated via CLI, actions via the console would just do nothing
+
+## S3 Websites
+
+- S3 can host static websites at URLs like `<bucket-name>.s3-website.<region>.amazonaws.com`
+- In case of a 403 error, it means that the bucket policy does not allow public reads and this must be changed
+
+## S3 Cross-Origin Resource Sharing (CORS)
+
+- An origin is scheme (protocol), host (domain) and port ⇒ https://example.com (HTTPS port 443)
+- CORS is web browser-based mechanism to allow other origins while visiting the main origin
+    - Requesting http://app.example.com from http://example.com
+    - The browser sends preflight requests to see if the origin website is allowed to make requests
+    - These requests are by denied unless a CORS header is provided
+    - If the CORS is allowed, the cross origin sends a preflight response with the HTTP methods that are allowed
+- S3 CORS
+    - Uses header is `Access-Control-Allow-Origin`
+    - Used to allow clients to do cross-origin requests
+        - Use case: we have a bucket that serves HTML, CSS, JS and another that serves the assets
+    - Can be allowed for specific origins or for all origins
 
 ## S3 Versioning
 
 - Stores all versions of an object, including writes and even deletions
 - Uploading a new version adds up to the storage
 - Total storage used is the total size of every version of every file
-- Great backup tool
+- Best practice to version the bucket
 - Once enabled, it can only be suspended - not disabled
+- Suspending versioning does not delete previous versions of the file but affects future versions
+- Any file that is not versioned prior to enabling versioning will have version "null"
 - Integrates with lifecycle rules
 - When a new version of a file is uploaded, it defaults to private
-- Can delete individual versions
+- Can permanently delete individual versions
 - Can enable MFA Delete capability for additional security
-
-## S3 Lifecycle Management
-
-- Used to manage automated or deletion of stored objects or or transition to different storage classes through lifecycle rules
-- Can use tag filters
-- Can be used in conjunction with versioning with separate rules for current and old versions of files
-- Can expire versions of objects
-- Can clean incomplete multi-part uploads
-- Rulesets are created and attached to buckets
 
 ## S3 Object Lock
 
-- A method to store objects using the Write Once, Read Many (WORM) model.
+- A method to store objects using the Write Once, Read Many (WORM) model
 - Prevents objects from being deleted or modified
 - Can be for a specified amount of time or indefinitely
 - Used for regulatory requirements or added security
@@ -699,6 +830,7 @@
 
 ## S3 Performance Optimization
 
+- S3 auto-scales performance to high request rates with 100-200ms latency
 - S3 prefixes
     - The pathway between bucket name and object's key
     - S3 has extremely low latency, 1st byte out within 100-200 ms
@@ -714,7 +846,6 @@
                 - Download ⇒ `Decrypt`
             - The API has hard limits with requests per second (KMS Quota)
                 - Region specific, but either 5,500, 10,000 or 30,000 requests per second
-
     - Multipart Uploads
         - For files over 100MB
         - Required for files over 5GB
@@ -727,6 +858,8 @@
 ## S3 Select
 
 - Use SQL expressions to retrieve subset of data from objects
+- Uses server side filtering
+- Can filter by rows and columns
 - Performance boost of up to 400% and up to 80% cheaper than manipulating the full object
 
 ## Glacier Select
@@ -741,23 +874,37 @@
     - Bucket ACLs and IAM roles (individual objects) ⇒ Programmatic access only
     - Cross-Account IAM roles ⇒ Programmating and console access
 
-## Cross-Region Replication (CRR)
+## Same- and Cross-Region Replication (SSR/CRR)
 
-- Used to copy objects across Amazon S3 buckets in different AWS Regions
+- Used to copy objects across Amazon S3 buckets in the same or different AWS Regions
 - Requires versioning enabled in the bucket that we are trying to replicate
-- Used for
-    - Meeting compliance requirements
-        - Some compliance requirements dictate data storage to be in very distant locations
-    - Minimize latency
-        - If end users are in two geographic locations, they can access objects faster if there is a copy in a nearby region
-    - Increased operational efficiency
-        - Separate compute clusters in different regions can operate more efficiently on locally available data copies
+- Copy is asynchronous and needs appropriate IAM role to S3
+- SSR use cases
+    - Log Aggregation
+    - Live replication between two accounts
+- CRR use cases
+    - Meeting compliance requirements that dictate data storage to be in very distant locations
+    - Minimize latency if end users are in two geographic locations, so that they can access objects faster if there is a copy in a nearby region
+    - Increased operational efficiency by separating compute clusters in different regions, as they can operate more efficiently on locally available data copies
 - On creation of the replication rule, we can change storage class for replicated objects and we can change object ownership
-- New buckets inherit the permission from souce bucket
+- New buckets inherit the permission from source bucket
 - Objects are already in the bucket are not automatically replicated to the target bucket, so they have to be uploaded manually
 - File modifications in one bucket are replicated to the other bucket
 - Delete markers and individual version deletions are not replicated across buckets
-- Replicated data is read only
+- No chain replication
+
+## S3 Event Notifications
+
+- Rules that react to certain actions happening in the bucket
+- Can be bucket-wide, folder-specific or object-specific
+- Can filter on object name
+- Sends a notification to SNS, SQS or Lambda Functions
+- Typically deliver event notification in seconds but could take up to minutes
+- Simultaneous writes to non-versioned objects might trigger only one notification
+- Enabling Versioning ensures that every successful write will send a notification
+- Use cases
+    - Generate thumbnails from uploaded images
+    - Tag images based on name
 
 ## Transfer Acceleration
 
@@ -773,6 +920,33 @@
 - Automatically encrypts data and accelerates transfer over the WAS
 - Automatic data integrity checks in-transit and at-rest
 - In the AWS region, DataSync securely connects to S3, EFS or FSx for Windows File Server to copy data and metadata
+
+## S3 Access Logs
+
+- Any API request made to an S3 bucket from any account, authorized or denied, are logged in another S3 bucket
+- Best practice is to create a bucket for logging purposes only
+- If you log S3 accesses in the bucket itself it will loop forever and grow exponentially
+- Used for auditing or analytical purposes
+
+## AWS Athena
+
+- Serverless service to perform analytics directly on S3 files
+- Data is never copied somewhere else for analytics but remains in S3 buckets
+- Best option to avoid provisioning RDS databases for S3 analytics
+- SQL to query files
+- JDBC/ODBC drivers
+- Charged per query and per amount of data scanned
+- Built on Presto, works on CSV, JSON, ORC, Avro and Parquet
+- Saves results to a new S3 Bucket
+- Use cases
+    - Business Intelligence
+    - Analytics and reporting
+    - Log query and analytics
+        - ELB logs
+        - CloudTrail trails
+        - VPC Flow logs
+        - S3 Access logs
+        - CloudFront logs
 
 # Elastic Load Balancer (ELB)
 
