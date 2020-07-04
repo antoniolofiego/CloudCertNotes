@@ -544,7 +544,7 @@
 
 # Simple Storage Service (S3)
 
-## What is S3?
+## S3 Overview
 
 - Secure, durable, highly-scalable object storage
 - Safe place to store files
@@ -553,7 +553,7 @@
     - Between 0 bytes and 5 TB
 - Unlimited storage
 
-## S3 Basics
+## S3 Basic Concepts
 
 - Universal namespace
     - Bucket names must be globally unique
@@ -757,6 +757,7 @@
 - Objects are already in the bucket are not automatically replicated to the target bucket, so they have to be uploaded manually
 - File modifications in one bucket are replicated to the other bucket
 - Delete markers and individual version deletions are not replicated across buckets
+- Replicated data is read only
 
 ## Transfer Acceleration
 
@@ -1420,3 +1421,53 @@
     - Can attach health checks
     - Up to 8 healthy records are returned for each Multi-Value query
     - Useful in conjunction with ELB but not a substitute
+
+# CloudFront and Global Accelerator
+
+## CloudFront Overview
+
+- Content delivery network
+- Improves read performance by caching content in edge locations for specific TTL
+- DDoS protection, integrates with AWS Shield and AWS Application Web Platform
+- Can expose external HTTPS and can talk to internal HTTPS backend
+- Geo Restriction
+    - Can allow/deny countries from accessing your content
+    - Enforced by 3rd party Geo-IP database
+    - Used to enforce Copyright laws
+- Great for static content that needs to be available everywhere
+
+## CloudFront Origins
+
+- S3 buckets
+    - For distribution of files
+    - Enhanced security with CloudFront Origin Access Identity (OAI) as IAM Roles
+    - Can be used as a way to upload files to S3
+- Custom Origin (HTTP)
+    - Application Load Balancer ⇒ Security group needs to allow Edge Location IP traffic
+    - EC2 Instance ⇒ Security group needs to allow Edge Location IP traffic
+    - S3 Website (must enable S3 static website hosting)
+    - Any HTTP backend
+
+## CloudFront Signed URL/Cookie
+
+- Uses policies with URL expiration, IP ranges and trusted signers to distribute paid shared content to premium users over the world
+- URL should be short-lived for shared content and as long as necessary for private content
+- Signed URL gives access to one file ⇒ Need one Signed URL per file
+- Signed Cookie gives access to multiple files
+
+## AWS Global Accelerator
+
+- Uses AWS internal network to serve content from Edge Locations to global clients
+- Leverages two Anycast IPs to send directly the traffic to the Edge Locations, which is then routed to your application
+- Works with public or private ALB, NLB, EC2 Instances and Elastic IPs
+- Consistent performance by using AWS nework, fast regional failover and intelligent routing to lowest latency
+- Performs Health checks over the system
+- Secure due to only 2 IPs that need to be whitelisted and AWS Shield integration for DDoS Protection
+- Good for non-HTTP uses such as UDP (like gaming), IoT devices or VoIP or HTTP uses that require static IP globally
+
+## Difference between CloudFront and Global Accelerator
+
+- Both use Edge Locations
+- Both integratw with AWS Shield for DDoS Protection
+- CloudFront improves content deliver for static (cacheable) and dynamic content by serving content from the Edge Locations
+- Global Accelerator proxyes requests at Edge Location to applications running in one or more Regions
