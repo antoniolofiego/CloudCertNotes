@@ -1645,3 +1645,36 @@
 - Both integratw with AWS Shield for DDoS Protection
 - CloudFront improves content deliver for static (cacheable) and dynamic content by serving content from the Edge Locations
 - Global Accelerator proxyes requests at Edge Location to applications running in one or more Regions
+
+# Elastic Beanstalk
+
+## Elastic Beanstalk Overview
+
+- Platform as a Service
+- Provide the code to your app and Elastic Beanstalk automatically creates and manages the underlying architecture
+- Managed service
+    - Instance configuration managed by AWS
+    - Deployment strategy managed by AWS but can be configured
+- Leverage all components such as EC2. RDS, ELB, ASG
+- Free, pay only for deployed services
+- Three architecture models
+    - Single instance ⇒ Good for dev environments
+    - ELB + ASG ⇒ Good for production or pre-production of web apps
+    - ASG-only ⇒ Good for production non-web apps
+- Three main components
+    - Application
+    - Application Version
+    - Environment name
+- Deploy application to one environment and promote them across environments
+- Rollback to previous application versions
+- Full control over lifecycle of environments
+- Many platforms are supported
+    - Go
+    - Python
+    - Node
+    - Java
+    - .NET
+    - PHP
+    - Ruby
+    - Single/Multi container Docker
+    - Preconfigured Docker
