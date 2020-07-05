@@ -1554,6 +1554,121 @@
 - Cost
     - Pay per provisioned capacity and storage usage, can auto-scale
 
+# AWS Neptune
+
+## Neptune Overview
+
+- Fully managed graph database
+- Highly available across 3 AZs and up to 15 Read Replicas
+- Point-in-time recovery
+- KMS, IAM, SSL
+
+## Neptune Use Cases
+
+- Social network
+- High relationship data
+- Knowledge graph
+
+## Neptune for Solution Architect
+
+- Operations
+    - Similar to RDS
+- Security
+    - VPC, IAM, KMS, SSL, IAM Authentication
+- Reliability
+    - Multi AZ, clustering
+- Performance
+    - Best when using clusters
+- Cost
+    - Pay per provisioned node
+
+# AWS ElasticSearch
+
+## ElasticSearch Overview
+
+- Fully managed Elasticsearch service
+- Used for search, full or partial, of any field
+- Complementary to other databases
+- Used for Big Data applications
+- Can be provisioned on clusters of instances
+- Integrates with Kinesis Data Firehose, AWS IoT and CloudWatch logs
+- Security via AWS Cognito (for third-party use), IAM, KMS, SSL & VPC
+- ELK stack ⇒ Kibana for visualization and Logstash for log ingestion
+
+## ElasticSearch Use Cases
+
+- Ideal for search and analysis of data
+- Search engines
+
+## ElasticSearch for Solution Architect
+
+- Operations
+    - Similar to RDS
+- Security
+    - Cognito, IAM, VPC, KMS, SSL
+- Reliability
+    - Multi-AZ, clustering
+- Performance
+    - Based on open-source Elasticsearch, scales to petabytes
+- Cost
+    - Pay per provisioned node
+
+# AWS Redshift
+
+## Redshift Overview
+
+- Fully managed petabyte-scale data warehouse
+- Columnar data storage
+- SQL interface for querying
+- Pay as you go based on provisioned instance
+- Integrates with visualization/dashboarding tools like AWS Quicksight and Tableau
+
+## Redshift Technology
+
+- Fork of PostgreSQL 8.0.2 and SQL compliant
+- Loads data from S3, RDS, DynamoDB, external DBs
+- Integrates with AWS Database Migration Service
+- Can connect via JDBC/ODBC
+- Distributed ⇒ High availability
+- Massively Parallel Query Execution (MPP) ⇒ High performance
+- 1 to 128 nodes with 160GB per node
+- Works on a leader - follower architecture
+    - Leader node ⇒ query planning and result aggregation
+    - Compute node ⇒ listen for leader instruction, perform queries and send results back
+- Redshift Spectrum
+    - Directly query against S3, no load
+    - Not serverless, need to provision clusters ⇒ Different from Athena
+    - Query is executed by Spectrum nodes
+- Backup and restore options
+    - Snapshots
+        - Stored in S3
+        - Point-in-time backup of a cluster
+        - Can be automated and configured with specific retention periods
+        - Incremental ⇒ Save only what changes and doesn't rewrite the whole thing
+        - Can restore snapshot in a new cluster
+        - Can automatically copy snapshots to other Regions ⇒ Disaster Recovery
+- Monitoring with CloudWatch/CloudTrail
+- VPC, IAM, KMS level security
+- Enhanced VPC Routing
+    - COPY/UNLOAD goes via VPC and not public internet ⇒ Better security/performance
+
+## Redshift Use Cases
+
+- Ideal for OLAP and BI applications
+
+## Redshift for Solution Architect
+
+- Operations
+    - Similar to RDS
+- Security
+    - Similar to RDS
+- Reliability
+    - Highly available, self-healing
+- Performance
+    - 10x performance compared to other DW tools, possibility to compress data
+- Cost
+    - Pay per provisioned node
+
 # AWS Route 53
 
 ## Route 53 Overview
