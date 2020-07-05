@@ -389,6 +389,250 @@
 - EC2 Placement groups ⇒ cluster, spread, partition
 - EC2 Hibernate
 
+# Elastic Load Balancer (ELB)
+
+## Scalability Overview
+
+- Scalability means that a system can handle greater loads by adapting
+- Scalability comes in two flavors
+    - Vertical scalability
+        - Increasing compute capacity (size of instance)
+        - Good for non-distributed servers like RDS, ElastiCache
+    - Horizontal scalability ⇒ Elasticity
+        - Increasing number of servers ⇒ Scale out, scale in
+        - Implies distributed systems
+        - Used for Load Balancers and Auto Scaling Groups
+        - Good for modern web applications
+- Scalability has ties to high availability but they are two different concepts
+    - HA means having fault tolerance to the loss of data centers
+    - Achieved by running the same instances across multiple AZs
+    - Can be active (I deploy multiple EC2 instances in different AZs) or passive (I enable multi-AZ deployment in RDS)
+    - User for multi-AZ ASG and multi-AZ Load Balancer
+
+## Load Balancing Overview
+
+- Servers that direct internet traffic to and from multiple EC2 instances and spreads the load
+- End users interface with one DNS endpoint, the Load Balancer, while the backend can be made of many instances
+- Performs health checks of instances to adaptively handle point of failures
+- Provides SSL termination for websites (HTTPS)
+- High availability across AZs
+- Enforce cookie stickiness
+- Separates public and private traffic
+
+## Elastic Load Balancer (ELB) Overview
+
+- Managed load balancer
+- AWS guaranteed
+- AWS provides limited configuration but handles upgrades, maintenance and high availability
+- Not the cheapest option (setting up your own LB can be cheaper) but easy to set up and integrated with AWS ecosystem
+- Load balancers have security groups
+    - From the load balancer, the appropriate security group is to allow HTTP traffic from anywhere on port 80 and HTTPS traffic on port 443
+    - EC2 instances should expect traffic only from the load balancer, so the source should be the security group on the load balancer
+    - A correctly working security group should show the application when pinging the LB endpoint but timeout on the EC2 endpoint
+- LBs can scale but not instantaneously
+- Error troubleshooting
+    - 4xx errors are client induced errors
+    - 5xx errors are application induced errors
+    - 503 error means at capacity or no registered targets
+    - If LB can't connect to instances it is a security group misconfiguration
+- Monitoring
+    - ELB Access logs log all access requests
+    - CloudWatch Metrics give aggregate statistics
+
+## ELB Health Checks
+
+- Allow the ELB to know whether instances are available to handle traffic and reply to requests
+- Done on a specific port and a specific route
+- If HTTP response is not 200, then the instance is unhealthy
+- Repeatedly done every 5 seconds
+
+## ELB Target Groups
+
+- Can target multiple services
+    - EC2 instances (ASG managed) ⇒ HTTP
+    - EC2 tasks (ECS managed) ⇒ HTTP
+    - Lambda functions ⇒ HTTP translated to JSON event
+    - IP Addresses ⇒ Must be private
+- Health checks are at group level
+
+## ELB Types
+
+- All ELBs can be internal (private) or external (public)
+- Classic (CLB)
+    - Supports HTTP, HTTPS (Layer 5), TCP (Layer 4)
+    - Health checks are HTTP or TCP
+    - Fixed hostname: `name.region.elb.amazon.aws`
+    - Steps for creation
+        1. Choose name, VPC, internal/external and configure the listener
+        2. Assign security group
+        3. Configure health checks
+            - Ping port and path
+            - Response timeout
+            - Intervals
+            - Healthy/Unhealthy thresholds
+- Application (ALB)
+    - Support HTTP, HTTPS, WebSocket
+    - Level 7 only ⇒ rule-based URI targeting
+    - Load balance to multiple HTTP applications across machines
+    - Load balance to multiple applications on the same machine
+    - Works on target groups and can target multiple
+    - Supports Redirect
+    - Allows routing tables to separate target groups
+        - URL-based routing
+        - Hostname-based routing
+        - Query String/Header-based routing
+    - Optimal for microservices and container-based applications
+    - Dynamic port mapping in ECS
+    - Fixed hostname: `name.region.elb.amazon.aws`
+    - Application servers don't see client details directly because they receive traffic from private ALB IP so they have to use extra headers if they need connection detail
+        - IP ⇒ inserted in `X-Forwarded-For` header
+        - Port ⇒ inserted in `X-Forwarded-Port` header
+        - Protocol ⇒ inserted in `X-Forwarded-Proto` header
+    - Steps for creation
+        1. Choose name, listeners, VPC, AZs
+        2. Choose security group
+        3. Create target group (type, protocol, port)
+        4. Create target group (type, protocol, port)
+        5. Configure health checks
+        6. Register targets
+        7. Configure routing rules
+- Network (NLB)
+    - Supports TCP, TLS, UDP
+    - Level 4 only ⇒ Network based targeting
+    - Works on target groups
+    - Handles millions of requests per second
+    - Improves latency (~100ms) and handles long-running connections
+    - One static IP per AZ and supports Elastic IPs
+    - Applications can see client details (network does not get cut at the LB level) so security groups for instances have to accept TCP traffic
+    - Steps for creation
+        1. Choose name, listeners, VPC, AZs and IP per AZ (can be autoassigned or Elastic IP)
+        2. Create target group (type, protocol, port)
+        3. Configure health checks
+        4. Register targets
+        5. Configure routing rules
+
+## LB Stickiness
+
+- Option to have the same client always be redirected to the same instance behind a load balancer
+- Works on CLB and ALB
+- Use cookies with controlled expiration date
+- Can lead to load imbalances if many requests are consistently routed to the same instance
+- Works on a target group level in ALB
+
+## Cross-zone Load Balancing
+
+- Allows each ELB to distribute traffic across all registered instances in any AZ
+- On CLB, disabled by default, but it incurs in no charges if enabled
+- On ALB, always on and no charges
+- On NLB, disabled by default and it incurs in charges
+
+## Connection Draining
+
+- Different names per ELB type
+    - CLB ⇒ Connection Draining
+    - ALB/NLB ⇒ Deregistration Delay
+- Time to complete in-transit requests while instance is de-registering or unhealthy
+- Stop sending new requests to the de-registering instance\
+- Delay can be between 0 (disabled) and 3600 seconds, defaults to 300 seconds
+- Delay setting should depend on length of requests, low if short requests and high if long requests
+
+## SSL/TLS Certificates
+
+- Enables traffic between client and LB to be encrypted in transit
+- SSL ⇒ Secure Socket Layer
+- TLS ⇒ Transport Layer Security, currently the mainly used ones
+- Public SSL certificates are issued by Certificate Authorities (GoDaddy, Symantec, etc...)
+- Certificates have expiration dates and must be renewed
+- The LB uses X.509 certificate (SSL server certificate) managed through AWS Certificate Manager
+- Added as default certificate on the HTTP listener
+- Can specify security policies to support legacy clients
+- ELB support
+    - CLB
+        - Only one SSL certificate
+        - Must use multiple CLBs to host multiple hostnames with multiple SSL certificates
+    - ALB
+        - Uses SNI to handle multiple SSL certificates
+    - NLB
+        - Uses SNI to handle multiple SSL certificates
+
+## Server Name Indication (SNI)
+
+- Handles multiple SSL certificate on one web server to serve multiple websites
+- Client indicates in the SSL handshake which website they want to connect to and the server automatically knows which certificate to load
+- Only works on ALB, NLB and CloudFront
+
+# Auto Scaling Groups (ASG)
+
+## ASG Overview
+
+- Scale out/in to match an increase/decrease in traffic load
+- Ensure minimum/maximum number of instances running
+- Free to use, but you pay for the launched instances
+- Automatic instance registration to ELB
+- IAM roles attached to ASG are inherited by EC2 instances launched by it
+
+## ASG Attributes
+
+- Launch configuration (old)/Launch Templates (new, can specify spot fleets)
+    - AMI and Instance Type
+    - EC2 User Data
+    - EBS volume
+    - Security Group
+    - SSH Key Pair
+    - New launch configurations/templates must be provided to update an ASG
+- Minimum/maximum size and desired capacity
+    - If an instance fails or is terminated, ASG will replace it automatically
+- Network/Subnet information
+- ELB information
+    - Can terminate unhealthy instances and replace them
+- Scaling policies
+    - Scale in response to Auto Scaling Alarms
+    - ASG can scale based on CloudWatch Alarms (metrics-based)
+    - Metrics are across overall ASG
+    - Can scale in/out
+    - Can be any type of metric
+        - CPU usage
+        - Average Network in/out
+        - ELB requests
+    - Can be custom metric
+        - Created via PutMetric API and sent to CloudWatch
+- Scaling cooldown
+    - A period between the trigger of a scaling activity and the time when a new scaling activity can take place
+    - Scaling-specific cooldowns override default cooldown (300 seconds)
+    - Scale-in policies benefit from shorter scaling-specific cooldowns
+    - If up and down scaling is frequent, specify cooldown and CloudWatch alarm periods
+
+## Scaling Policies Implementations
+
+- Target Tracking Scaling
+    - Set a target metric to track and scale in order to maintain that target
+    - Eg: average CPU usage at 50% (scale in when below, scale out when above)]
+- Simple/Step Scaling
+    - Specify steps of a target CloudWatch Alarm and scale when it is triggered
+- Scheduled actions
+    - Specific actions at specific time frames
+    - Useful for highly predictable patterns
+
+## ASG for Solutions Architect Exam
+
+- ASG Default Termination Policy
+    1. Find AZ with most number of instances
+    2. If multiple instances are available, delete the ones with the oldest launch config/template
+- Lifecycle Hooks
+    - As soon as an instance is launched in ASG, it is in service
+    - You can perform tasks before the instance goes in service during the pending state and before the instance is terminated during the terminating state
+    - Can be used either to install software or configure setting during the pending state or to retrieve logs/data before instance termination
+- Launch Template vs. Launch Configuration
+    - Both allow to specify AMI, instance type, key pair, security groups, tags and other attributes
+    - Launch Configurations
+        - Must be recreated every time
+    - Launch templates can have multiple versions
+        - Multiple version
+        - Parameter subsets (partial configurations that can be reused or inherited)
+        - Can instantiate both On-Demand and Spot instances
+        - Can use T2 Unlimited Burst features
+        - Is recommended by AWS
+
 # Elastic Block Storage (EBS)
 
 ## EBS Overview
@@ -979,249 +1223,93 @@
 - Cost
     - Pay-per-query and per TB scanned
 
-# Elastic Load Balancer (ELB)
+# AWS Storage Gateway
 
-## Scalability Overview
+## Storage Gateway Overview
 
-- Scalability means that a system can handle greater loads by adapting
-- Scalability comes in two flavors
-    - Vertical scalability
-        - Increasing compute capacity (size of instance)
-        - Good for non-distributed servers like RDS, ElastiCache
-    - Horizontal scalability ⇒ Elasticity
-        - Increasing number of servers ⇒ Scale out, scale in
-        - Implies distributed systems
-        - Used for Load Balancers and Auto Scaling Groups
-        - Good for modern web applications
-- Scalability has ties to high availability but they are two different concepts
-    - HA means having fault tolerance to the loss of data centers
-    - Achieved by running the same instances across multiple AZs
-    - Can be active (I deploy multiple EC2 instances in different AZs) or passive (I enable multi-AZ deployment in RDS)
-    - User for multi-AZ ASG and multi-AZ Load Balancer
+- Used for hybrid cloud solutions
+- Gives connection to S3 data on-premise
+- Three types of Storage Gateway
+    - File Gateway ⇒ File access or NFS
+        - Used to expose S3 buckets via NFS or SMB protocols
+        - Can be mounted on many servers via NFS
+        - Supports S3 Standard, S3 IA, S3 One-Zone IA
+        - Each File Gateway has its own IAM Role
+        - Caches recently accessed data in the File Gateway
+    - Volume Gateway ⇒ Block storage, iSCSI
+        - Used for block storage backed by S3 via iSCSI protocol
+        - Uses EBS snapshot for on-premise volume restore
+        - Two classes
+            - Cached volumes ⇒ Low latency for recent data
+            - Stored volumes ⇒ Scheduled backups on S3 for whole on-premise dataset
+    - Tape Gateway ⇒ Tape backup, VTL, Backup with iSCSI
+        - Transfer backup jobs from tape to the cloud while keeping tools and processes on-premise
+        - Virtual Tape Library (VTL) backed by S3 and Glacier
 
-## Load Balancing Overview
+## Storage Gateway Use cases
 
-- Servers that direct internet traffic to and from multiple EC2 instances and spreads the load
-- End users interface with one DNS endpoint, the Load Balancer, while the backend can be made of many instances
-- Performs health checks of instances to adaptively handle point of failures
-- Provides SSL termination for websites (HTTPS)
-- High availability across AZs
-- Enforce cookie stickiness
-- Separates public and private traffic
+- Hybrid cloud
+- Backup storage
+- Tiered storage
+- Disaster Recovery
 
-## Elastic Load Balancer (ELB) Overview
+# AWS FSx (File Server)
 
-- Managed load balancer
-- AWS guaranteed
-- AWS provides limited configuration but handles upgrades, maintenance and high availability
-- Not the cheapest option (setting up your own LB can be cheaper) but easy to set up and integrated with AWS ecosystem
-- Load balancers have security groups
-    - From the load balancer, the appropriate security group is to allow HTTP traffic from anywhere on port 80 and HTTPS traffic on port 443
-    - EC2 instances should expect traffic only from the load balancer, so the source should be the security group on the load balancer
-    - A correctly working security group should show the application when pinging the LB endpoint but timeout on the EC2 endpoint
-- LBs can scale but not instantaneously
-- Error troubleshooting
-    - 4xx errors are client induced errors
-    - 5xx errors are application induced errors
-    - 503 error means at capacity or no registered targets
-    - If LB can't connect to instances it is a security group misconfiguration
-- Monitoring
-    - ELB Access logs log all access requests
-    - CloudWatch Metrics give aggregate statistics
+## FSx Overview
 
-## ELB Health Checks
+- Fully managed file system share drive
+- Scalable distributed file system
+- Two types
+    - FSx for Windows
+        - Windows alternative to EFS (which is POSIX ⇒ Linux only)
+        - Supports SMB protocol and Windows NTFS
+        - Integrates with Microsoft Active Directory, ACL, user quotas
+        - Built on SSD, millions of IOPS, 100s PB of data, 10s GB/s
+        - Can be accessed on-premise and can be Multi-AZ
+        - Backed daily to S3
+    - FSx for Lustre
+        - Parallel distributed file system for large-scale computing
+        - For Machine Learning and High Performance Computing (HPC)
+        - Electronic Design Automation, financial modeling, image/video processing
+        - 100s GB/s, millions of IOPS, sub-ms latency
+        - Integrates with S3 for read/write
+        - Can be used on on-premise servers
+- Pay for provisioned storage and throughput capacity (automatic selection for Lustre)
+- Encrypted at rest, security via VPC and security groups
 
-- Allow the ELB to know whether instances are available to handle traffic and reply to requests
-- Done on a specific port and a specific route
-- If HTTP response is not 200, then the instance is unhealthy
-- Repeatedly done every 5 seconds
+# AWS Snow Family
 
-## ELB Target Groups
+## Snow Overview
 
-- Can target multiple services
-    - EC2 instances (ASG managed) ⇒ HTTP
-    - EC2 tasks (ECS managed) ⇒ HTTP
-    - Lambda functions ⇒ HTTP translated to JSON event
-    - IP Addresses ⇒ Must be private
-- Health checks are at group level
+- Physical box used for transporting TBs or PBs of data in or out of AWS
+- Also used for providing edge computing and access to AWS services
+- Alternative to network transfer
+- Secure, tamper resistant, encrypted (KMS), tracked via SNS/text
+- Pay per job
+- Different type of jobs
+    - Snow Transfer ⇒ For moving large amounts of data
+    - Snow Compute ⇒ For using AWS capability in edge locations
+    - Snow Storage ⇒ Aggregating data in edge location
+- Different classes
+    - Snowcone
+        - Up to 8TB for all Snow jobs
+    - Snowball
+        - Up to 80TB for all Snow jobs
+    - Snowball Edge
+        - Improved Snowball, up to 100TB, storage/compute/compute w/GPU optimized
+        - Supports EC2 AMIs and Lambda functions for processing on the go
+    - Snowmobile
+        - Exabyte-scale data transfer service for extremely large data transfers
+- Used when data transfer would be too slow/expensive over the network
+- Used for disaster recovery, large data transfers, decommission of data centers, on-the-go computing
+- Cannot import directly into Glacier, has to use S3 lifecycle policies
 
-## ELB Types
+## How does it work
 
-- All ELBs can be internal (private) or external (public)
-- Classic (CLB)
-    - Supports HTTP, HTTPS (Layer 5), TCP (Layer 4)
-    - Health checks are HTTP or TCP
-    - Fixed hostname: `name.region.elb.amazon.aws`
-    - Steps for creation
-        1. Choose name, VPC, internal/external and configure the listener
-        2. Assign security group
-        3. Configure health checks
-            - Ping port and path
-            - Response timeout
-            - Intervals
-            - Healthy/Unhealthy thresholds
-- Application (ALB)
-    - Support HTTP, HTTPS, WebSocket
-    - Level 7 only ⇒ rule-based URI targeting
-    - Load balance to multiple HTTP applications across machines
-    - Load balance to multiple applications on the same machine
-    - Works on target groups and can target multiple
-    - Supports Redirect
-    - Allows routing tables to separate target groups
-        - URL-based routing
-        - Hostname-based routing
-        - Query String/Header-based routing
-    - Optimal for microservices and container-based applications
-    - Dynamic port mapping in ECS
-    - Fixed hostname: `name.region.elb.amazon.aws`
-    - Application servers don't see client details directly because they receive traffic from private ALB IP so they have to use extra headers if they need connection detail
-        - IP ⇒ inserted in `X-Forwarded-For` header
-        - Port ⇒ inserted in `X-Forwarded-Port` header
-        - Protocol ⇒ inserted in `X-Forwarded-Proto` header
-    - Steps for creation
-        1. Choose name, listeners, VPC, AZs
-        2. Choose security group
-        3. Create target group (type, protocol, port)
-        4. Create target group (type, protocol, port)
-        5. Configure health checks
-        6. Register targets
-        7. Configure routing rules
-- Network (NLB)
-    - Supports TCP, TLS, UDP
-    - Level 4 only ⇒ Network based targeting
-    - Works on target groups
-    - Handles millions of requests per second
-    - Improves latency (~100ms) and handles long-running connections
-    - One static IP per AZ and supports Elastic IPs
-    - Applications can see client details (network does not get cut at the LB level) so security groups for instances have to accept TCP traffic
-    - Steps for creation
-        1. Choose name, listeners, VPC, AZs and IP per AZ (can be autoassigned or Elastic IP)
-        2. Create target group (type, protocol, port)
-        3. Configure health checks
-        4. Register targets
-        5. Configure routing rules
-
-## LB Stickiness
-
-- Option to have the same client always be redirected to the same instance behind a load balancer
-- Works on CLB and ALB
-- Use cookies with controlled expiration date
-- Can lead to load imbalances if many requests are consistently routed to the same instance
-- Works on a target group level in ALB
-
-## Cross-zone Load Balancing
-
-- Allows each ELB to distribute traffic across all registered instances in any AZ
-- On CLB, disabled by default, but it incurs in no charges if enabled
-- On ALB, always on and no charges
-- On NLB, disabled by default and it incurs in charges
-
-## Connection Draining
-
-- Different names per ELB type
-    - CLB ⇒ Connection Draining
-    - ALB/NLB ⇒ Deregistration Delay
-- Time to complete in-transit requests while instance is de-registering or unhealthy
-- Stop sending new requests to the de-registering instance\
-- Delay can be between 0 (disabled) and 3600 seconds, defaults to 300 seconds
-- Delay setting should depend on length of requests, low if short requests and high if long requests
-
-## SSL/TLS Certificates
-
-- Enables traffic between client and LB to be encrypted in transit
-- SSL ⇒ Secure Socket Layer
-- TLS ⇒ Transport Layer Security, currently the mainly used ones
-- Public SSL certificates are issued by Certificate Authorities (GoDaddy, Symantec, etc...)
-- Certificates have expiration dates and must be renewed
-- The LB uses X.509 certificate (SSL server certificate) managed through AWS Certificate Manager
-- Added as default certificate on the HTTP listener
-- Can specify security policies to support legacy clients
-- ELB support
-    - CLB
-        - Only one SSL certificate
-        - Must use multiple CLBs to host multiple hostnames with multiple SSL certificates
-    - ALB
-        - Uses SNI to handle multiple SSL certificates
-    - NLB
-        - Uses SNI to handle multiple SSL certificates
-
-## Server Name Indication (SNI)
-
-- Handles multiple SSL certificate on one web server to serve multiple websites
-- Client indicates in the SSL handshake which website they want to connect to and the server automatically knows which certificate to load
-- Only works on ALB, NLB and CloudFront
-
-# Auto Scaling Groups (ASG)
-
-## ASG Overview
-
-- Scale out/in to match an increase/decrease in traffic load
-- Ensure minimum/maximum number of instances running
-- Free to use, but you pay for the launched instances
-- Automatic instance registration to ELB
-- IAM roles attached to ASG are inherited by EC2 instances launched by it
-
-## ASG Attributes
-
-- Launch configuration (old)/Launch Templates (new, can specify spot fleets)
-    - AMI and Instance Type
-    - EC2 User Data
-    - EBS volume
-    - Security Group
-    - SSH Key Pair
-    - New launch configurations/templates must be provided to update an ASG
-- Minimum/maximum size and desired capacity
-    - If an instance fails or is terminated, ASG will replace it automatically
-- Network/Subnet information
-- ELB information
-    - Can terminate unhealthy instances and replace them
-- Scaling policies
-    - Scale in response to Auto Scaling Alarms
-    - ASG can scale based on CloudWatch Alarms (metrics-based)
-    - Metrics are across overall ASG
-    - Can scale in/out
-    - Can be any type of metric
-        - CPU usage
-        - Average Network in/out
-        - ELB requests
-    - Can be custom metric
-        - Created via PutMetric API and sent to CloudWatch
-- Scaling cooldown
-    - A period between the trigger of a scaling activity and the time when a new scaling activity can take place
-    - Scaling-specific cooldowns override default cooldown (300 seconds)
-    - Scale-in policies benefit from shorter scaling-specific cooldowns
-    - If up and down scaling is frequent, specify cooldown and CloudWatch alarm periods
-
-## Scaling Policies Implementations
-
-- Target Tracking Scaling
-    - Set a target metric to track and scale in order to maintain that target
-    - Eg: average CPU usage at 50% (scale in when below, scale out when above)]
-- Simple/Step Scaling
-    - Specify steps of a target CloudWatch Alarm and scale when it is triggered
-- Scheduled actions
-    - Specific actions at specific time frames
-    - Useful for highly predictable patterns
-
-## ASG for Solutions Architect Exam
-
-- ASG Default Termination Policy
-    1. Find AZ with most number of instances
-    2. If multiple instances are available, delete the ones with the oldest launch config/template
-- Lifecycle Hooks
-    - As soon as an instance is launched in ASG, it is in service
-    - You can perform tasks before the instance goes in service during the pending state and before the instance is terminated during the terminating state
-    - Can be used either to install software or configure setting during the pending state or to retrieve logs/data before instance termination
-- Launch Template vs. Launch Configuration
-    - Both allow to specify AMI, instance type, key pair, security groups, tags and other attributes
-    - Launch Configurations
-        - Must be recreated every time
-    - Launch templates can have multiple versions
-        - Multiple version
-        - Parameter subsets (partial configurations that can be reused or inherited)
-        - Can instantiate both On-Demand and Spot instances
-        - Can use T2 Unlimited Burst features
-        - Is recommended by AWS
+1. Request Snow device for delivery
+2. Install Snow client on-premise
+3. Transfer data
+4. Ship back to AWS
 
 # AWS Databases
 
