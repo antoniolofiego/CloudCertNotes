@@ -1955,3 +1955,243 @@
 - Exponential Backoff
     - Any rate-limited API that fails because of too many calls needs to be retried using EB
     - The calls will be performed with exponential delay, waiting twice as long before calling again
+
+# Application Communication
+
+- In a large system, applications will need to communicate among each other
+- Used in serverless and microservices architectures
+- Two application communication patterns
+    - Synchronous ⇒ Application to application
+    1. Asynchronous ⇒ Event based, application to queue to application
+- Synchronous communication can be problematic
+    - Tight coupling between components
+    - Spikes in traffic can overwhelm infrastructure
+    - Errors in components avalanche down
+- Solution patterns to decoupling applications
+    - Queue model ⇒ SQS
+    - Pub/Sub model ⇒ SNS
+    - Real-Time Streaming model ⇒ AWS Kinesis
+
+# AWS Simple Queue Service (SQS)
+
+## SQS Overview
+
+- A queue based inter-process communication middleware system
+- Producers send messages to a queue, which is polled by consumers
+- Can be integrated with ASG ⇒ too many messages per instance triggers more instances
+
+## SQS Technology
+
+- SQS Message production
+    - Body
+        - Up to 256kb
+        - String
+    - Metadata
+        - Optional key-value pairs with message attributes
+    - Returns
+        - Message identifier
+        - MD5 hash of the body
+- Message consumption
+    - Poll for messages, up to 10 at a time
+    - Consume message within visibility timeout period
+    - Delete using message ID and receipt handle with `DeleteMessage` API
+- Visibility Timeout
+    - Period of time during which a message is invisible to all but one consumer
+    - Starts when a consumer polls a message from the queue
+    - Between 0 seconds and 12 hours (30 seconds default)
+    - If it is too long and a consumer fails to process, it takes a long time to be able to process the message again
+    - If it is too short and a consumer fails to process in time, it might be processed multiple times
+    - Timeout can be dynamically changed via the `ChangeMessageVisibility` API
+- Long Polling
+    - A period of time that a consumer is willing to wait for if no messages are on the queue
+    - Can be between 1 and 20 seconds, 20 seconds preferred
+    - Long polling is preferred to short polling
+    - Decreases API calls to SQS and improves latency and performance
+    - Enabled via `WaitTimeSeconds` API or at the queue level
+
+## SQS Queue Type
+
+- Standard Queue
+    - Oldest AWS offering
+    - Fully managed
+    - Scales from 1 to 10k messages per second
+    - 4 to 14-day retention period
+    - No limits of messages in the queue
+    - <10ms on produce/consume
+    - At-Least-Once Delivery ⇒ Messages are delivered at least once but can have multiples
+    - Best-Effort Ordering ⇒ Occasional out of order message delivery
+- Delay Queue
+    - Delay messages up to 15 minutes
+    - Default 0 seconds, can change via `DelaySeconds` parameter
+    - Can set default at each queue level
+- Dead Letter Queue
+    - If a message is returned to the queue too many times because consumers fail to process it in time during the Visibility Timeout, it can be pushed to a separate queue
+    - We can set a threshold on how many times the message can be pushed back via a Redrive policy
+    - After the threshold is passed, the message is moved in the Dead Letter Queue (DLQ)
+    - It is a fully separate queue with different settings than the original queue
+- FIFO Queue
+    - Name of the queue must end in `.fifo`
+    - Lower throughput ⇒ 3,000/s with batching, 300s without
+    - Messages are processed in order ⇒ First In, First Out
+    - Messages are sent exactly once
+    - Queue delay but no per-message delay
+    - Content-based deduplication (5 minute interval using Duplication ID)
+    - Message groups
+        - Extra tag on the message that groups messages for FIFO ordering
+        - Only one worker per message group
+        - Optimizing Group ID means multiple workers can work in parallel on multiple queues
+
+# AWS Simple Notification Service (SNS)
+
+## SNS Overview
+
+- Pub/Sub model of messaging
+- Send one message to many receivers
+- The publisher sends message to one SNS topic
+- As many subscribers as we want will listen the SNS notification
+- All subscribers will receive all the messages from the topic they are subscribed to
+- Up to 10M subscribers per topic
+- 100K topics limit
+- Different type of subscribers
+    - SQS
+    - HTTP/HTTPS that can retry delivery multiple times
+    - Lambda functions
+    - Email
+    - SMS Messages
+    - Mobile notifications
+- Integrates with multiple AWS services
+    - CloudWatch Alarms
+    - ASG Notifications
+    - S3 Bucket Events
+    - CloudFormation state changes
+
+## SNS Publications
+
+- Topic Publish (via SDK)
+    - Create topic
+    - Create subscribers
+    - Publish to topic
+- Direct Publish (for mobile app SDK)
+    - Create platform application
+    - Create platform endpoint
+    - Publish to platform endpoint
+    - Works with most notification systems
+
+## SNS/SQS Fan Out
+
+- In case we want to delivery messages to multiple SQS queues
+- Publish to SNS Topic ⇒ Each SQS queue subscribes to that topic
+- Used for full decoupling and scaling receivers
+- Leverages SQS delayed or retrial processing capabilities
+
+# AWS Kinesis
+
+## Kinesis Overview
+
+- Managed Apache Kafka alternative
+- Great for real-time big-data and streaming processing frameworks
+- Automatic replication of data to 3 AZs
+- Three major products
+    - Kinesis Data Stream
+        - Low-latency real-time data ingestion
+        - Receives real time data streams from click streams, IoT devices, logs/metrics, etc...
+    - Kinesis Data Analytics
+        - Real-time analytics on streams using SQL
+        - Can create new Data Streams from the analyzed queries
+        - Serverless, continuous and auto-scaling
+        - Pay per consumption rate
+    - Kinesis Data Firehose
+        - Serverless, fully managed
+        - Load streams in other AWS services (Redshift, ElasticSearch, S3...)
+        - Supports multiple data formats
+        - Almost real time ⇒ 60 seconds latency for non-full batches or 32MB data at a time
+        - Pay only per data that passes through Data Firehose
+        - No data storage ⇒ Can't replay data
+    - Usual process is 
+    Input ⇒ Data Stream ⇒ Data Analytics ⇒ Data Firehose ⇒ One or more AWS store
+
+## Kinesis Data Stream
+
+- Divided in ordered shards/partitions
+    - A shard is 1MB/s or 1000 messages/s for writes and 2MB/s per reads
+    - Billed per shard provisioned with 200 shards as a soft limit
+    - Shards number can increase over time to scale appropriately (reshard/merge)
+    - Records are ordered per shard
+    - One consumer per shard
+- Increase throughput by increasing number of shards
+- Data retention is 1 day by default but can be set to up to 7 days
+- Once data enters stream it can't be deleted/removed
+- Can reprocess/replay data as data is retained after processing
+- Multiple applications can consume the same stream
+- Useful when we have very large amount of data that needs to be ordered in many shards
+
+## Kinesis API
+
+- PutRecords API
+    - A record is made of data and message key that gets hashed to determine the Shard ID
+    - Same key hash always go to the same partition
+    - Data go to one shard at a time
+    - Once sent, a message has a sequence number, which is only increasing, for ordering purposes
+    - Best practice is to choose highly distributed partition key to avoid overloading one shard
+    - Can batch PutRecords to increase throughput and reduce costs
+    - The Kinesis API can use CLI, AWS SDK or other producers libraries
+- `ProvisionedThroughputExceeded` Exception
+    - We are sending too much data and we go over provisioned throughput
+    - Can be because of hot shard (overloaded shard) or underprovisioned stream
+    - Solved by retries with exponential backoff, shard scaling and use of better partition keys
+- Consumer API
+    - Can be used by regular consumers (CLI, SDK)
+    - Can use the Kinesis Client Library for Java, Node, Python, Ruby and NET that uses DynamoDB to checkpoint offsets and track other workers as well as sharing work among shards
+
+## Kinesis Security
+
+- Uses IAM Policies to control access and authorizations
+- HTTPS endpoint in-flight encryption
+- KMS for at-rest encryption
+- Client-side encryption
+- VPC endpoints to access Kinesis in a VPC
+
+# Amazon MQ
+
+## Amazon MQ Overview
+
+- Managed Apache ActiveMQ for messaging applications using open protocols
+- Does not scale as much because it needs to be provisioned
+- Runs on dedicated machines and can run in high-availability with failover options
+- Can be both queue model or pub/sub model
+- Generates endpoints for each protocol
+- Security group needs to accept Inbound TCP traffic on appropriate ports
+
+## Amazon MQ Use Cases
+
+- Migrating on-premise apps that use messaging applications without moving to SQS/SNS
+- Apps using protocols such as MQTT, AMQP, STOMP, Openwire, WSS
+
+# Choosing between SQS, SNS and Kinesis
+
+## SQS
+
+- Consumer poll messages
+- Data is deleted after consumption
+- As many consumers as we want
+- Can delay individual message
+- No throughput provisioning
+- No ordering guarantees (except FIFO streams)
+
+## SQS
+
+- Consumer subscribe to topics, messages are pushed
+- Up to 10M subscribers and 100k topics
+- Data is lost if not delivered
+- No throughput provisioning
+- Integrates with SQS for fan out architecture
+
+## Kinesis
+
+- Consumer pull data
+- As many consumers as we want
+- Can replay data
+- Real-time big-data, ETL and analytics
+- Ordering at shard level
+- Temporary data retention
+- Must provision throughput
