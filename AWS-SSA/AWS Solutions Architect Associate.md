@@ -96,6 +96,8 @@
 - Can login into AWS using company credentials
 - Uses SAML standard (Eg: Active Directory)
 
+## AWS STS - Security Token Service
+
 ## IAM Best Practices
 
 - Root credentials
@@ -1626,7 +1628,7 @@
 - Each item has attributes that can be added over time and can be null
 - Item-level TTL
 - Supports scalar (String, number, bool, binary, null), document (list, map) and set data types
-- Global Table can be enabled when using DynamoDB Streams
+- Global Table can be enabled when using DynamoDB Streams ⇒ Streams create changelog, use changelog to replicate data across Regions
 
 ## DynamoDB Accelerator (DAX)
 
@@ -2028,7 +2030,7 @@
 - Cognito Federated Identity Pools (Federated Users)
     - Provide AWS credentials to users to access AWS resources and services
     - Identities provided by Federated Identity Providers or anonymous
-    - Temporary AWS credentials with pre-defined IAM Policies
+    - Temporary AWS credentials usign Secure Token Service (STS) with pre-defined IAM Policies
     - Integrates with User Pool
 - Cognito Sync
     - Sync data from devices to Cognito to store preferences, configurations and states
@@ -2359,3 +2361,99 @@
 - Ordering at shard level
 - Temporary data retention
 - Must provision throughput
+
+# AWS CloudWatch
+
+## CloudWatch Overview
+
+- Monitoring instrument that provides and collects metrics from every service
+    - Over/under provisioning
+    - Current demand/load
+    - Bottlenecks
+    - Component performance
+    - Idle resources
+- Can be set to automatically publish detailed 1-minute metrics and custom metrics with up to 1-second granularity
+- Allows to set alarms and automate actions based on predefined thresholds or anomaly detectors
+
+## CloudWatch Metrics
+
+- A time-series variable to monitor in a service
+- Belong to a namespace so they can be grouped
+- Dimensions are attributes of a metric, up to 10 dimensions per metric
+- Some services have specific monitoring capabilities
+    - EC2 Detailed Monitoring
+        - 1-minute detailed metrics from EC2 instance
+        - Costs more money than regular 5 minutes
+        - Used for faster ASG prompts
+
+- Custom metrics
+    - You can define custom metrics for CloudWatch to track
+    - Can use dimensions to segment metrics
+    - Standard 1 minute detail, can become high resolution up to 1 second at higher costs
+    - API call ⇒ `PutMetricData`
+    - Exponential backoff in case of errors
+
+## CloudWatch Dashboards
+
+- Quick access for important metrics with auto-refresh
+- Global access
+- Can include graphs from different regions as well as different time zones and time ranges
+- 3 50-metrics dashboards for free, $3/dashboard/month after
+
+## CloudWatch Logs
+
+- Applications send logs to CloudWatch via SDK
+- Certain services directly log to it
+    - Elastic Beanstalk ⇒ Collect from app
+    - ECS ⇒ Collect from container
+    - Lambda ⇒ Collect from function calls
+    - VPC ⇒ Specific VPC Flow Logs
+    - API Gateway ⇒ Access logs
+    - Route 53 ⇒ DNS Queries
+    - CloudTrail ⇒ Filtered logs
+    - CloudWatch ⇒ Log agents on EC2 instances
+- CloudWatch can redirect logs to other services like S3, ElasticSearch, etc..
+- Logs are stored in groups (arbitrary) and streams (instances within application/container/files)
+- KMS encryption at group level
+- Can define expiration policies for the logs
+- Need to have correct IAM permissions to send logs to CloudWatch
+- Can use filter expression on logs to find specific information or trigger alarms
+- Logs Insights can be used to query logs and add queries to Dashboards
+
+## CloudWatch Alarms
+
+- Used to trigger notifications for metrics
+- Can go to multiple services (SNS, Auto Scaling, EC2 Actions)
+- Different alarm states
+    - OK ⇒ Everything fine
+    - INSUFFICIENT_DATA ⇒ Not enough data for the alarm
+    - ALARM ⇒ Threshold is passed
+- Period of time in seconds to evaluate the metric (only 10/30 sec for custom metrics)
+
+## CloudWatch Events
+
+- Scheduled or pattern-reactive events that trigger Lambda functions or SQS/SNS/Kinesis messages
+- Create small JSON documents with event information such as state changes
+
+# Auditing: CloudTrail and AWS Config
+
+## CloudTrail Overview
+
+- Enabled by default
+- Provides a history of events/API calls within the AWS Account made by console, SDK, CLI and services
+- Used for governance, compliance and audit purposes
+- CloudTrail Logs can be put in CloudWatch Logs
+- Track entire lifecycle of AWS resources
+
+## AWS Config Overview
+
+- Records configurations and its changes over time
+- Can analyze configuration data with Athena by putting them in S3
+- Answers question such as SSH access, public access to resources, serve configuration
+- Can send SNS notification on changes
+- You can view compliance and configuration of resources over time, as well as CloudTrail logs
+- Uses AWS managed config rules or custom Lambda-defined rules
+- Rules are evaluated or triggered on config change, regular intervals or CloudWatch Alarms
+- Rules can auto-remediate (ex: stop non-complying instances)
+- Config don't deny permissions so they can't prevent things from happening
+- $2/month per active rule
