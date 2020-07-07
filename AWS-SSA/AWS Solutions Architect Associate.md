@@ -1596,29 +1596,59 @@
 - Exclusively backed by SSD volumes
 - Single-digit millisecond response time at any scale
 - Built-in security, resiliency, fault-tolerance, durability
-- Replicated across multiple AZs
+- Replicated across multiple AZs (3 default)
 - No limits to storage and throughput
 - Need to provision reads and writes throughput (pay for provisioned)
-- Since 2018 also on-demand capacity
-- Reads are eventually consistent or strongly consistent
-- Throughput can auto-scale
-- Security is handled through IAM
-- DynamoDB Streams integrate with Lambda
+    - Read Capacity Unit (RCU) ⇒ Throughput for read ($0.00013 per RCU)
+        - 1 strongly consistent read and 2 eventually consistent read of 4KB/S per RCU
+    - Write Capacity Unit (WCU) ⇒ Throughput for write ($0.00065 per WCU)
+        - 1 write of 1KB/S per WCU
+    - Throughput can auto-scale or can be exceeded temporarily with Burst credits
+        - `ProvisionedThrougputException` error when out of credits
+- Point-in-time restore
+- Global Table ⇒ Multi-region fully-replicated tables
+- Can use Database Migration Service (DMS) to migrate from other DBs
+- Can launch DynamoDB on local machines for local development purposes
+- Recent features
+    - Transactions ⇒ all or nothing operations
+    - On demand capacity ⇒ Scales automatically, good for unpredictable or extremely low throughput
 
 ## DynamoDB Tables
 
 - Tables, items, attribute
-- No joins/relationships
-- Schema-less
+- No joins/relationships ⇒ Schemaless
 - Key value and documents
-- Unique primary key is required
+- Unique primary key is required and decided at creation time
 - Secondary indexes
 - Query on primary key, sort key or indexes
-- No table size limit
-- 400KB item size limit
+- No table size limit but 400KB item size limit
+- Infinite number of items per table
+- Each item has attributes that can be added over time and can be null
 - Item-level TTL
+- Supports scalar (String, number, bool, binary, null), document (list, map) and set data types
 - Global Table can be enabled when using DynamoDB Streams
-- Can replace ElastiCache as key/value store using DAX (Acccelerated Clusters)
+
+## DynamoDB Accelerator (DAX)
+
+- Cache for DynamoDB, writes go through DAX and to DynamoDB
+- Microseconds latency for cached reads and queries
+- 5 minute cache TTL
+- Up to 10 multi-AZ DAX nodes in the cluster
+- Encryption at-rest (KMS, VPC, IAM, CloudTrail)
+
+## DynamoDB Streams
+
+- Changelog of all events in DynamoDB that are retained for 24 hours
+- Enable event driven programming
+- Integrate with Lambda for real-time computing
+- Necessary for Cross-Region Replication
+
+## DynamoDB Security
+
+- VPC Endpoints
+- IAM access control
+- KMS encryption at-rest
+- SSL/TLS encryption in-flight
 
 ## DynamoDB Use Cases
 
@@ -1879,6 +1909,140 @@
 - Both integratw with AWS Shield for DDoS Protection
 - CloudFront improves content deliver for static (cacheable) and dynamic content by serving content from the Edge Locations
 - Global Accelerator proxyes requests at Edge Location to applications running in one or more Regions
+
+# AWS Lambda
+
+## Lambda Overview
+
+- Virtual, serverless functions
+- Short executions
+- Run on demand
+- Automated scaling
+- Pay per request and compute time
+- Integrated with many AWS services
+    - API Gateway
+    - Kinesis
+    - DynamoDB
+    - S3
+    - CloudFront
+    - CloudWatch EventBridge/Logs
+    - SNS/SQS
+    - Cognito
+    - Etc...
+- Supports multiple programming languagues
+    - Node.js
+    - Python
+    - Java 8
+    - C#
+    - Ruby
+    - Custom Runtime API if community-supported
+    - NO Docker ⇒ Use ECS or Fargate
+- Easy monitoring integration with CloudWatch
+- Can provide more resources per functions up to 3GB of RAM per call
+- Increasing RAM will improve also CPU and network capabilities
+- Per-region limits
+    - Execution
+        - Between 128MB and 3008MB of RAM in 64MB increments
+        - 15 minutes max execution
+        - Soft limit of 1000 concurrent executions
+        - 4KB ENV variables
+        - Disk capacity of 512MB in `/tmp`
+    - Deployment
+        - Compressed size of ≤ 50MB
+        - Uncompressed size of ≤ 250MB
+        - Use `/tmp` for additional files at startup
+
+## Lambda Use Cases
+
+- Performing actions on triggers
+- Serverless CRON jobs
+
+## Lambda@Edge
+
+- Lambda functions deployed alongside CloudFront
+- Advanced management of CDN content via request filtering
+- Types of Lambda@Edge request manipulation
+    - Viewer requests ⇒ After viewer sends request to CloudFront
+    - Origin request ⇒ Before CloudFront forwards request to origin
+    - Origin response ⇒ After origin sends response to CloudFront
+    - Viewer response ⇒ Before Cloudfront forwards response to viewer
+
+## Lambda@Edge Use Cases
+
+- Build low-latency dynamic applications
+- Content security and privacy, bot protection
+- SEO
+- Data routing
+- A/B testing
+- User authentication, tracking and analytics
+- Real-time content processing
+
+# AWS API Gateway
+
+## API Gateway Overview
+
+- Serverless service to create APIs
+- Supports REST and WebSocket protocols
+- Handles versioning, deployment environments and authentication/authorization
+- API Keys, request throttling,
+- Open standards for API definitions and exports like Swagger and OpenAPI
+- Validate/transform request and responses
+- Generate SDK and API specs
+- Cache API responses
+- Several integrations
+    - Lambda ⇒ Expose cloud-based REST API
+    - HTTP ⇒ On-premise APIs, useful to use additional API Gateway features
+    - AWS Services ⇒ Useful to use additional API Gateway features
+- Endpoint Types
+    - Edge optimized ⇒ Global clients, routed through CloudFront
+    - Regional ⇒ Clients in the same region as the API
+    - Private ⇒ Accessed only by VPC through ENI and resource policies
+
+## API Gateway Security
+
+- IAM Permissions ⇒ For users in your AWS account
+    - Create IAM policy and attach it to a IAM User or Role
+    - API Gateway verifies the permissions
+    - Uses Sig v4 to identify correct IAM credentials in headers passed on with the call
+- Lambda/Custom Authorizer ⇒ 3rd party authorizations
+    - Validates tokens via Lambda
+    - Caches results of authorization
+    - Used for OAuth/SAML/3rd party auth
+    - Lambda function must return an IAM policy for the user
+- Cognito User Pools ⇒ Custom user pools backed by 3rd party login (FB, Google)
+    - Uses Cognito to manage user lifecycle
+    - Works only for authentication and not authorization
+
+# AWS Cognito
+
+## Cognito Overview
+
+- Used to provide users an identity to use our applications and servers
+- Cognito User Pools
+    - Serverless database of users for apps
+    - Login with email/password, verify email/phone numbers, MFA capabilities
+    - Can use Federated Identities ⇒ Login with Facebook, Google, GitHub, SAML...
+    - Returns JSON Web Tokens (JWT) for authentication purposes
+    - Integrates with API Gateway
+    - Sign-in functionality
+- Cognito Federated Identity Pools (Federated Users)
+    - Provide AWS credentials to users to access AWS resources and services
+    - Identities provided by Federated Identity Providers or anonymous
+    - Temporary AWS credentials with pre-defined IAM Policies
+    - Integrates with User Pool
+- Cognito Sync
+    - Sync data from devices to Cognito to store preferences, configurations and states
+    - Offline capabilities (sync back when online)
+    - Largely replaced by AWS AppSync
+
+# AWS Serverless Application Model (SAM)
+
+## SAM Overview
+
+- YAML-based framework to deploy serverless application infrastructures
+- Includes configurations for all serverless services (Lambda, API Gateway, Cognito, DynamoDB...)
+- Allows to run serverless environments locally
+- Use CodeDeploy to deploy Lambda functions
 
 # Elastic Beanstalk
 
