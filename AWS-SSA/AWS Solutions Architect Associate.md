@@ -75,9 +75,26 @@
         - Generator
         - Hand written policies
     - Evaluation logic
-        1. Default to implicit deny
-        2. Look for explicit deny
-        3. Look for explicit allow
+        - By default, all requests are implicitly denied while by default, the AWS account root user has full access
+        - An explicit allow in an identity-based or resource-based policy overrides this default.
+        - If a permissions boundary, Organizations SCP, or session policy is present, it might override the allow with an implicit deny
+        - An explicit deny in any policy overrides any allows.
+
+## IAM Permission Boundaries
+
+- A managed policy to set the maximum permissions that an identity-based policy can grant to an IAM entity
+- Applies to Users/Roles and not groups
+- Limits the user's permissions but does not provide permissions on its own
+- A user with permission boundaries can never perform operations in any other service even if she has additional IAM policies that would otherwise allow it
+
+## IAM Conditions
+
+- Portion of policies that make them more restrictive based on certain sets of conditions
+- Common conditions
+    - `aws:SourceIP` ⇒ IP groups that are allowed/denied to make API calls
+    - `aws:RequestedRegion` ⇒ Regions that users are allowed/denied to make API calls to
+    - `aws:*Tag` ⇒ Tagged resources or users that are allowed/denied to make API calls
+    - `aws:MultiFactorAuthPresent` ⇒ Allow/deny API calls only if MFA is active for the user
 
 ## AWS New Account first steps
 
@@ -91,12 +108,47 @@
 
 ## IAM Federation
 
-- For large enterprises
-- Used to integrate your own repository of users with IAM
-- Can login into AWS using company credentials
-- Uses SAML standard (Eg: Active Directory)
+- Allows users outside of AWS to assume temporary IAM roles in our account
+- No need to create IAM users as the users are managed outside AWS
+- Multiple ways of using Federation
+    - Web Identity Federation without Cognito
+        - Not recommended ⇒ Use Cognito instead
+        - Uses API calls `AssumeRoleWithWebIdentity`
+    - Web Identity Federation with Cognito
+        - Direct access to AWS resources from client side
+        - Uses Federated Identity Pool with pre-defined IAM Policies
+    - SAML 2.0
+        - For Active Directory/ADFS or any other SAML 2.0 provider
+        - Access to console and CLI
+        - Used to integrate your own repository of users with IAM
+    - Single Sign-On (SSO)
+        - Managed service and Improved way of handling temporary credential
+        - Integrated with AWS Organizations, SAML 2.0 and on-premise AD
+        - Centralized permission management and auditing with CloudTrail
+        - Can access AWS Resources and 3rd party applications with one Sign-On
+        - AWS provides a catalog of 3rd party apps that integrate already with AWS SSO
+    - Custom Identity Broker
+        - For non-SAML compadible IdP
+        - Uses STS API calls `AssumeRole` and `GetFederationToken`
+    - AWS Directory Services
+        - Microsoft Active Directory
+            - Centralized security management for Windows-based servers
+            - Database of objects organized in trees, grouped in forests
+        - Three types of AD-compatible directory services in AWS
+            - AWS Managed Microsoft AD ⇒ Create AD in AWS and manage it there, can trust-connect to on-premise AD
+            - AD Connector ⇒ Proxy to connect to on-premise AD, users are managed on-prem
+            - Simple AD ⇒ AD-compatible managed directory on AWS, no connection to on-premise
+        - Directory Services also has Cognito User Pools, which leverages Cognito to add user registration and sign-in so it does not count as Active Directory
 
 ## AWS STS - Security Token Service
+
+- Create tokens to grant limited and temporary (up to 1 hour) access to AWS resources
+- Most important STS API calls
+    - `AssumeRole` ⇒ Role access within- or cross-account
+    - `AssumeRoleWithSAML` ⇒ Role access for federated Identities
+    - `AssumeRoleWithWebIdentity` ⇒ Role access for users logged with Identity Providers (FB...)
+    - `GetSessionToken` ⇒ For MFA from user or AWS root user
+- STS checks permissions with IAM when a user calls `AssumeRole` and if the user can assume the role, it returns the temporary security credentials to access the role and resources
 
 ## IAM Best Practices
 
@@ -118,6 +170,51 @@
         - Third parties
         - Hundreds of enterprise users
         - Millions of web users
+
+# AWS Organizations
+
+## AWS Organizations Overview
+
+- Global service that eases management of multiple AWS accounts
+- Automate creation of AWS accounts via API
+- Can enable CloudTrail and CloudWatch logs to send logs to central account
+- Service Control Policies (SCPs) ⇒ Explicit allows
+    - Control who can use what services at Organizational Unit or Account level
+    - Does not apply to master account or service-linked roles
+    - Apply to all Users and Roles of Member Accounts, even the Root user
+    - Explicit denies > Explicit Allows
+- Organization Breakdown
+    - Master Account ⇒ Root of organization
+        - Organizational units ⇒ Business/project-based/environment units
+            - Member accounts ⇒ Can be a part of only one organization
+- Consolidated billing
+    - One bill, many accounts
+    - Aggregated volume pricing
+    - Reserved instances apply to all accounts
+- Detailed billing
+    - Published to S3 buckets
+    - Import into spreadsheets/Redshift
+    - Filter/Sort by services, tags, etc...
+
+## AWS Resource Access Manager (RAM)
+
+- Allows to share AWS resources co-owned with other accounts
+- Can share resources with other accounts or within your Organization
+- Used to avoid resource duplication
+- Can share
+    - VPC Subnets ⇒ Most likely to be in the exam
+        - Must be from the same organization
+        - Allows to launch resources in the same subnets
+        - Cannot share security groups
+        - Can manage own resources in shared subnets but can't view, modify or delete resources owned by other accounts
+    - AWS Transit Gateway
+    - Route53 Resolvers
+    - License Manager Configurations
+    - Aurora DB Clusters
+    - EC2 Reservations
+    - CodeBuild projects and Report Groups
+    - Image Builders
+    - Dedicated hosts
 
 # Elastic Compute Cloud (EC2)
 
