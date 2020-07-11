@@ -2554,3 +2554,39 @@
 - Rules can auto-remediate (ex: stop non-complying instances)
 - Config don't deny permissions so they can't prevent things from happening
 - $2/month per active rule
+
+# AWS Key Management Service
+
+## KMS Overview
+
+- Managed service for controlling encryption keys across AWS data stores
+- Fully integrated with IAM for authorization
+- Full key lifecycle management ⇒ Creation, deletion, rotation...
+- Auditing available via CloudTrail
+- Can be used through console, CLI and SDK, with payment per 10k API calls
+- Keys can be AWS created (free), user created via KMS or user imported ($1/month/key)
+- Different type of Customer Master Keys (CMK)
+    - Symmetric (AES-256)
+        - Single encryption key used for encrypt/decrypt
+        - Must use KMS API to use
+    - Asymmetric (RSA/ECC key pair)
+        - Public and private keys for encryption and decryption
+        - For encrypt/decrypt and sign/verify
+        - Used for outside-AWS encryption
+- CMK can't be retrieved by the user and is always managed by AWS
+- Up to 4KB of data per API call
+- KMS keys are region-bound
+- To copy KMS-Encrypted data, make a snapshot and transfer the encrypted snapshot specifying a new KMS key
+- When attaching KMS Key policies to Snapshots, you need to specify authorization for cross-account access
+
+## KMS Key Policies
+
+- Control access to KMS Keys like S3 bucket policies
+- If no key policy is specified, no one can access it
+- Default key policy gives full access to Root user
+- KMS Keys can be accessed if the Key Policy allows the user and the IAM Policy allows API calls
+
+## KMS Use Cases
+
+- Sharing database passwords, third-party service credentials, SSL certificates' private key
+- Encrypting secrets to safely store them in code/environment variables
