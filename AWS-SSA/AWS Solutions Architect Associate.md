@@ -2590,3 +2590,25 @@
 
 - Sharing database passwords, third-party service credentials, SSL certificates' private key
 - Encrypting secrets to safely store them in code/environment variables
+
+# AWS Systems Manager (SSM) Parameter Store
+
+## SSM Overview
+
+- Secure storage for configuration and secrets
+- Optional Encryption using KMS
+- Serverless, scalable, durable, used via SDK
+- Version tracking of configurations and secrets
+- Uses folder-like structure for providing configurations for specific users and environments
+- Configuration management using path & IAM
+- Notifications with CloudWatch Events
+- Integrates with CloudFormation
+- Two tiers of parameters
+    - Standard (free)
+        - 10K total parameters of 4KB max size
+        - Standard throughput or paid higher throughput (1000/s API transactions)
+    - Advanced
+        - 100K total parameters of 8KB max size ($0.05 per parameter per month)
+        - Paid standard or higher throughput (1000/s API transactions)
+        - Can assign TTL to force update or delete sensitive data
+        - Can schedule CloudWatch events for various parameters, such as expiration or lack of change in x days
