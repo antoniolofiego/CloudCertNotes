@@ -2555,9 +2555,9 @@
 - Config don't deny permissions so they can't prevent things from happening
 - $2/month per active rule
 
-# AWS Key Management Service
+# AWS Encryption and Security services
 
-## KMS Overview
+## AWS Key Management Service
 
 - Managed service for controlling encryption keys across AWS data stores
 - Fully integrated with IAM for authorization
@@ -2578,22 +2578,16 @@
 - KMS keys are region-bound
 - To copy KMS-Encrypted data, make a snapshot and transfer the encrypted snapshot specifying a new KMS key
 - When attaching KMS Key policies to Snapshots, you need to specify authorization for cross-account access
+- Key policies
+    - Control access to KMS Keys like S3 bucket policies
+    - If no key policy is specified, no one can access it
+    - Default key policy gives full access to Root user
+    - KMS Keys can be accessed if the Key Policy allows the user and the IAM Policy allows API calls
+- Use cases
+    - Sharing database passwords, third-party service credentials, SSL certificates' private key
+    - Encrypting secrets to safely store them in code/environment variables
 
-## KMS Key Policies
-
-- Control access to KMS Keys like S3 bucket policies
-- If no key policy is specified, no one can access it
-- Default key policy gives full access to Root user
-- KMS Keys can be accessed if the Key Policy allows the user and the IAM Policy allows API calls
-
-## KMS Use Cases
-
-- Sharing database passwords, third-party service credentials, SSL certificates' private key
-- Encrypting secrets to safely store them in code/environment variables
-
-# AWS Systems Manager (SSM) Parameter Store
-
-## SSM Overview
+## AWS Systems Manager (SSM) Parameter Store
 
 - Secure storage for configuration and secrets
 - Optional Encryption using KMS
@@ -2612,3 +2606,238 @@
         - Paid standard or higher throughput (1000/s API transactions)
         - Can assign TTL to force update or delete sensitive data
         - Can schedule CloudWatch events for various parameters, such as expiration or lack of change in x days
+
+## AWS CloudHSM (Hardware Security Module)
+
+- AWS provisioned dedicated encryption hardware, tamper resistant and FIPS 140-2 Level 3 compliant
+- You manage your own keys, can be symmetric or asymmetric
+- CloudHSM can be setup to be Multi-AZ
+- No free tier, must use CloudHSM Client Software
+- Good for use with SSE-C keys
+
+## AWS Firewall Manager
+
+- Manages rules in all the accounts under an AWS Organization
+- Define common set of rules to use WAF, Shield and Security Groups across accounts
+
+## AWS **Web Application Firewall (WAF)**
+
+- Layer 7 content filtering
+- Support rules to block/allow/count
+- Integrates with ALB, API Gateway and CloudFront
+- Protects against
+    - SQL Injections
+    - Cross-Site Scripting XSS
+- Block based on Web Access Control Lists (Web ACL)
+    - IP address
+    - HTTP headers/body
+    - URI String
+    - Size constraint
+    - Geo-matching
+    - Rate limiting per client IP (DDoS protection)
+- Managed rules for common threats
+    - OWASP
+    - Bots
+    - Common Vulnerabilities and Exposures (CVE)
+
+## **AWS Shield**
+
+- DDoS protection service
+- Standard ⇒ Free for everyone
+    - UDP reflection
+    - SYN floods
+    - SSL renegotiation
+    - Slow loris attacks
+- Advanced ⇒ Additional cost
+    - Near real-time visibility
+    - Integrates with WAF
+    - Access to DDoS response team
+    - Protection against attacks on EC2, ELB, CloudFront, Global Accelerator and Route 53
+    - Protect against higher usage fees during DDoS attacks
+
+# AWS Virtual Private Cloud (VPC)
+
+## Classless Inter-Domain Routing (CIDR-IPv4)
+
+- Used in Security groups
+- Define IP ranges
+- CIDR has two parts
+    - Base IP ⇒ XX.XX.XX.XX
+        - An IP contained in the range
+    - Subnet Mask ⇒ /24 (most common form) or 255.255.255.0 (less common)
+        - How many bits can change in the IP
+        - The number of IPs allowed is 2 to the power of (32 - /XX) (ex: /32 ⇒ 2^0 = 1)
+        - The main cutoffs are 32, 24, 16, 8 and 0, respectively no IP, last IP number set, last two IP number sets, last three IP number sets and all IP numbers can change
+- IPs can be public or private (LAN)
+- Private IPs are in the ranges 10.0.0.0/8 for big networks, 172.16.0.0/12 for AWS and 192.168.0.0/16 for home networks
+
+## VPC Overview
+
+- Soft limit of 5 VPC per region
+- Maximum CIDR for VPC is 5, each of which has to be between /28 and /16
+- Being a Virtual **Private** Cloud, only Private IP ranges are allowed
+- VPC CIDR should not overlap with your other private networks
+- VPCs are divided in public or private subnets that are specific to single AZs
+- Can have multiple subnets in the same AZ
+- AWS reserves the first 4 IP addresses and the last one in each subnet you create
+    - 0 ⇒ Network address
+    - 1 ⇒ VPC Router
+    - 2 ⇒ Mapping to Amazon-provided DNS
+    - 3 ⇒ Future use
+    - 255 ⇒ Network broadcast address
+
+## Default AWS VPC
+
+- Every AWS account have a default VPC where instances are launched if no VPC is specified
+- Default VPC have internet connectivity and instances have public IP and public/private DNS
+- The default VPC comes with 3 subnets with non-overlapping CIDR ranges, route tables, IGW and a default NACL that allows all inbound/outbound traffic
+
+## IGW (Internet Gateway)
+
+- Allows VPC instances to connect to the internet when combined with Route Tables
+- Must be created separately from VPC
+- One IGW can only connect to one VPC and vice versa
+- IGWs are NAT devices for the instances with public IPv4
+- Can scale horizontally, is highly available and redundant
+- Egress Only Internet Gateway ⇒ Access to internet but not reachable by the internet (IPv6 only)
+    - All IPv6 addresses are public addresses
+    - Functions as a NAT, but NATs are only for IPv4
+
+## Route Tables
+
+- A set of rules used to determine where network traffic from your subnet or gateway is directed
+- Routes can be target different services, such as IGWs, NAT Gateways, VP Gateways and other
+
+## DNS Resolution in VPC
+
+- Two main settings
+    - `enableDnsSupport` ⇒ Defaults to True, queries AWS DNS Server at 169.253.169.253
+    - `enableDnsHostname` ⇒ Defaults to False for custom VPC, True in default VPC, assigns public hostname to EC2 instance if it has a public IP when also `enableDnsSupport` is True
+- Both settings must be true to use custom DNS domain names in Private Zone in Route 53
+
+## Network Address Translation (NAT) Instances
+
+- EC2-based instances that allow other instances in private subnets to connect to internet
+- Must be launched in public subnets and have elastic IPs attached to it
+- Must disable EC2 flag for Source/Destination Check
+- Traffic must be routed from private subnets to NAT Instances via route tables
+- Must define HTTP/HTTPS rules to allow traffic from the VPC
+- There are pre-defined Amazon Linux 2 AMIs that come with correct NAT instance configuration
+- NAT Instances are not HA or resilient, must use ASG and multi-AZ setups
+- Instance type dictates network performance
+
+## NAT Gateways
+
+- AWS Managed NAT with high bandwith, availability and no administrative needs
+- Pay for how much bandwith you use, as well as by the hour
+- AZ specific and requires Elastic IP and IGW
+- Can only be used by instances in other subnets than the one it is created in
+- 5Gbps bandwith, autoscales up to 45Gbps
+- For high availability, deploy NAT Gateways in multiple AZ
+
+## Network Access Control Lists (NACLs) and Security Groups
+
+- Security groups are firewalls at the instance level
+- NACLs are firewalls at the subnet level
+- Default NACLs allow everything inbound and outbound
+- One NACL per subnet, new subnets are assigned the Default NACL
+- NACL rules have precedence numbers, where lower numbers have higher priority
+- In case no rules match, * rule denies requests
+- New NACLs will deny everything
+- NACLs and SGs filter requ
+- ests that fit parameters defined in the inbound rules
+- SGs are stateful, so if a request passes inbound/outbound, it will also pass outbound/inbound
+- NACLs are stateless, so if a request passes inbound/outbound, outbound/inbound rules will still be evaluated
+
+## VPC Peering
+
+- Allows to connect two VPC privately using AWS' network
+- Must be set such as if they were on the same network, using appropriate CIDR
+- Can work cross-region and cross-account and you can reference security groups of peered VPCs
+
+## VPC Endpoints
+
+- Used to access and use AWS Services such as S3 or DynamoDB using private networks
+- Remove need for IGW, NAT Gateways or other networking tools to access AWS services
+- Scale horizontally and are redundant
+- Two types of endpoint
+    - Interface ⇒ Provisioned private IP address with SG as entry point (for most AWS services)
+    - Gateway ⇒ Provisioned target to be used in a route table (for S3 and DynamoDB)
+- Points of failure are in DNS settings and route tables
+
+## VPC Flow Logs
+
+- Logs about IP traffic going in VPCs
+- Can be automatically moved to S3/CloudWatch
+- Three kind of logs
+    - VPC Flow Kogs ⇒ Everything within VPC
+    - Subnet Flow Logs ⇒ Everything within a specific Subnet
+    - Elastic Network Interface Flow Log ⇒ Everything with a specific ENI (also AWS Managed)
+- Log syntax
+
+    <version> <account-id> <interface-id> <srcaddr> <dstaddr> <srcport> <dstport> <protocol> <packets> <bytes> <start> <end> <action> <log-status>
+
+    - <srcaddr> <dstaddr> ⇒ IP identification
+    - <srcport> <dstport> ⇒ Port identification
+    - <action> ⇒ Success/Failure based on NACL/SG
+- Logs can be queried with Athena
+
+## Bastion Hosts
+
+- Used to SSH into private instances
+- It is the public subnet that is then connected to other private subnets
+- Bastion Host's security must be extra tight and strict (usually Port 22 traffic from needed IPs)
+
+## Virtual Private Networks (VPN) and Gateways (VGW)
+
+- Used to connect on-premise data center to AWS network
+- Create a Customer Gateway on the on-premise DC and a VP Gateway on the AWS VPC
+- Connected by a site-to-site VPN connection
+- The Customer Gateway is a software/hardware on the customer side
+- It is connected to the VPN via static internet-routable IP address of the gateway or the public IP address of the NAT if using it
+
+## VPN CloudHub
+
+- Allows to create a secure connection among different DCs with multiple VPN connections
+- Low cost hub-and-spoke model for connectivity between locations
+- VPN connection ⇒ Goes through the public internet
+
+## Direct Connect
+
+- Dedicated private connection from an on-prem DC to AWS network via Direct Connect locations
+- Needs dedicated connection on DC and a Virtual Private Gateways in your AWS VPC
+- You can access both private and public resources using the same connection
+- Supports IPv4/6
+- Data in transit is not encrypted ⇒ AWS Direct Connect + VPN for IPsec-encrypted connections
+- Direct Connect Gateway
+    - Used to connect one or more VPCs in different regions to our on-prem DC
+    - Even in separate regions, CIDRs can't overlap
+    - Direct Connect Gateway does not create VPC peering
+- Two connection types ⇒ Takes longer than a month to establish new connection
+    - Dedicated connections
+        - Physical cables installed by AWS Direct Connect Partners (DCP)
+        - 1Gbps and 10Gbps
+    - Hosted connections
+        - Direct connection requests to AWS Direct Connect Partners (DCP)
+        - Capacity can be increased/decreased
+        - 50Mbps to 500Mbps for most DCP, 1Gbps to 10Gbps for some DCPs
+
+## AWS ClassicLink
+
+- Deprecated way to connect EC2-Classic instances to a VPC in your account
+
+## AWS PrivateLink/VPC Endpoint Services
+
+- Safe way to expose services to 1000s of VPCs
+- Works by leveraging Network Load Balancers on the service VPC and ENI on customer VPC
+- All traffic goes through the AWS Network and not the public internet
+
+## Transit Gateway
+
+- Simplifies network topology by allowing transitive VPC peering between 1000s of VPCs and DCs
+- Hub-and-spoke connection model ⇒ All VPCs, DCs, VPNs connect to the Transit Gateway
+- Regional resource but can work cross region by peering across regions
+- Can be shared across accounts using Resource Access Management (RAM)
+- Route Table can specify which VPCs can talk among each other
+- Works with VPCs, Direct Connect Gateway and VPN Connections
+- Supports IP Multicast (only AWS service to do so)
