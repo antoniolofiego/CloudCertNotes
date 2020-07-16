@@ -472,6 +472,12 @@
     - On-Demand and Reserved instances
     - Can't hibernate longer than 60 days
 
+## EC2 Strategies for High Availability
+
+- Standby instances to enable failover in case of unhealthy instances via CloudWatch events
+- Lambda functions to automate instance management in response to CloudWatch events
+- Leverage Auto Scaling Groups to create instances in multiple AZ and automate provisioning of failover instances, Elastic IPs transferring, EBS movements and so on
+
 ## Exam questions related to EC2 for Solutions Architect
 
 - EC2 Instances are billed by the second, t2.micro is free tier
@@ -1886,6 +1892,34 @@
 - Cost
     - Pay per provisioned node
 
+# AWS Database Migration Service
+
+## DMS Overview
+
+- Quickly migrate databases from on-prem to resilient, self-healing AWS services
+- Source database is still available
+- Supports homogeneous and heterogeneous migrations and continuous data replication
+- Works on EC2 instances that are set up to perform the migration tasks
+- The DMS-ready EC2 instance pulls data from sources and moves them to targets
+    - Sources ⇒ On-Premise or EC2-based DBs, Azure SQL DBs, RDS, S3
+    - Targets ⇒ On-Premise or EC2-based DBs, RDS, Redshift, DynamoDB, S3, ElasticSearch Service, Kinesis Data Streams, DocumentDB
+
+## AWS Schema Conversion Tool (SCT)
+
+- A software that converts schemas from one engine to another for heterogeneous migrations
+- Can transform both OLTP and OLAP
+
+# AWS DataSync
+
+## DataSync Overview
+
+- Used to move large datasets from on-premise to AWS
+- Data can be moved to S3, EFS or FSx for Windows
+- Can move data from NAS or FS via NFS or SMB protocols
+- Can move data from EFS in one region to EFS in another region
+- Can schedule data replication hourly, daily or weekly
+- Needs the DataSync agent installed on premise to work
+
 # AWS Route 53
 
 ## Route 53 Overview
@@ -2728,11 +2762,11 @@
 
 ## NAT Gateways
 
-- AWS Managed NAT with high bandwith, availability and no administrative needs
-- Pay for how much bandwith you use, as well as by the hour
+- AWS Managed NAT with high bandwidth, availability and no administrative needs
+- Pay for how much bandwdith you use, as well as by the hour
 - AZ specific and requires Elastic IP and IGW
 - Can only be used by instances in other subnets than the one it is created in
-- 5Gbps bandwith, autoscales up to 45Gbps
+- 5Gbps bandwidth, autoscales up to 45Gbps
 - For high availability, deploy NAT Gateways in multiple AZ
 
 ## Network Access Control Lists (NACLs) and Security Groups
@@ -2787,6 +2821,8 @@
 - Used to SSH into private instances
 - It is the public subnet that is then connected to other private subnets
 - Bastion Host's security must be extra tight and strict (usually Port 22 traffic from needed IPs)
+- Using an NLB, bastion hosts can be in private subnets
+- To maintain high availability, consider deploying multiple bastion hosts in different AZs and fronting NLBs before them (need TCP because of SSH) to failover to in case of a BH failure
 
 ## Virtual Private Networks (VPN) and Gateways (VGW)
 
@@ -2841,3 +2877,110 @@
 - Route Table can specify which VPCs can talk among each other
 - Works with VPCs, Direct Connect Gateway and VPN Connections
 - Supports IP Multicast (only AWS service to do so)
+
+# Cloud Architectures Topics
+
+## Disaster Recovery
+
+- A disaster is any event that has negative impact on business's continuity or finances
+- Disaster Recovery is preparing and recovering from disasters
+- DR can be fully on-premise, hybrid (switch to cloud when on-prem goes down) or fully cloud
+- Disaster Recovery is measured with two key metrics
+    - Recovery Point Objective (RPO)
+        - How often we run backups
+        - The data between the last backup and the disaster is our data loss
+    - Recovery Time Objective (RTO)
+        - When did we recover from the disaster
+        - The time between the disaster and the recovery is our downtime
+    - Optimization of RPO and RTO drives solution architectures and cost structures
+- Key DR strategies (Highest RTO to lowest RPO)
+    - Backup and Restore
+        - High RPO and high RTO
+        - Can be very dangerous if backups are too spaced out
+        - Can be slow to recovery if restoring many services/databases
+        - Cheap
+    - Pilot Light
+        - Small version of the app is always running in the cloud in the background
+        - Ideal and feasible only for the critical core systems
+        - Faster than backup and restore because the app is already up, so just failover
+    - Warm Standby
+        - Full system is up and running at minimum size
+        - Can be scaled to production load when disaster hits
+    - Hot site/Multi site approach (Active/Active)
+        - Very expensive but lowest RPO/RTO
+        - Full production scale applications running in two sites
+    - All AWS Multi Region
+        - Appropriate for fully cloud
+        - When disaster hits, failover to a non-affected region
+- General DR advice
+    - Backups
+        - Can be done using EBS or RDS backups and snapshots, etc...
+        - Can be cost-optimized by storing them on S3, Glacier, leveraging lifecycle policies, CRR
+        - On-Prem Backups leverage Snowball or Storage Gateway
+    - High Availability
+        - Multi-AZ when can be enabled
+        - Route 53 automatic DNS migration
+        - Recovery from Direct Connect with site-to-site VPN
+    - Replication
+        - AWS Aurora Global Databases, RDS Replication
+        - On-premise DB replication to RDS
+        - Storage Gateway
+    - Recovery Automation
+        - CloudWatch alarms
+        - SAM, CloudFormation, Elastic Beanstalk
+        - AWS Lambda to deal with automatic taks
+    - Chaos
+        - Netflix Chaos Monkeys to test fault tolerance in production environments
+
+## On-Premise Strategies
+
+- You can use Amazon Linux 2 AMIs on on-premise VMs by downloading the AMI's .iso
+- VM Import/Export to migrate applications to/from EC2 or move DR strategies to on-prem
+- AWS App Discovery Service to plan migrations from on-prem to EC2
+- DMS to migrate or replicate databases to/from AWS Services
+- AWS Server Migration Service to incrementally replicate on-prem servers to AWS
+
+## Large Data Transfers
+
+- Over the internet or Site-to-Site VPN
+    - Immediate setup
+    - Slow to transfer
+- Direct Connect
+    - Long setup time
+    - Takes considerably shorter than OTI
+- Snowball
+    - Can take multiple Snowball devices
+    - Up to a week end-to-end
+    - Can be combined with Database Migration Service
+- Ongoing replication
+    - Site-to-Site VPN with DMS or DataSync
+
+## Caching Strategies
+
+- Anticipate data update patterns when choosing cache TTL
+- Store frequently accessed queries from RDS and app logic in Redis/Memcached
+- The deeper in the backend the caching happens, the more cost/latency it is introduced
+
+## Security Strategies
+
+- Take advantage of Connection Termination capabilities of ALBs when filtering IPs
+- Can create more granular filters with Web Application Firewalls either at the ALB level or at the CloudFront distribution level if using CloudFront
+- NLB traffic is passthrough and does not have security groups, so security has to be put in effect in the instance's Security Group and in the NACLs
+
+## High Performance Computing
+
+- Cloud is great for HPC because of on-demand nature of resource usage
+- Data Management and Transfer
+    - Direct Connect ⇒ Private secure network for transferring via the internet
+    - Snow family ⇒ Physical transfer of PBs of data
+    - DataSync ⇒ Move data between on-premise and AWS
+- Computing
+    - EC2 ⇒ Compute/GPU Optimized, cost optimization via Spot fleets, Cluster placement groups for better network performance
+    - EC2 Enhanced Networking ⇒ High bandwidth, either via Elastic Network Adapter (100Gbps) or Intel 82599VF (10Gbps, legacy)
+    - Elastic Fabric Adapter ⇒ Improved ENA for distributed HPC that works only on Linux and leverages Message Passing Interface standards to provide low-latency network performace
+- Storage
+    - Instance-attached storage ⇒ EBS (IO1, up to 64,000 IOPS) or Instance storage (millions of IOPS, physical storage)
+    - Network storage ⇒ S3 (non-FS blob), EFS (IOPS based on provisioned IOPS or size) or FSx for Lustre (HPC optimized, backed by S3, millions of IOPS)
+- Automation
+    - AWS Batch ⇒ Multinode parallel jobs that span multiple EC2 instances
+    - Parallel Cluster ⇒ Automatic creation of VPC, subnet, cluster and instance type for HPC
