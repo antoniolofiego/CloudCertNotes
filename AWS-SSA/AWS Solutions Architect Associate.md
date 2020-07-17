@@ -22,6 +22,95 @@
 ## Well-Architected Framework Overview
 
 - Describes design principles and architectural best practices for designing and running workloads in the cloud
+- General principles
+    - No capacity guessing
+    - Test systems at production scale
+    - Automate processes for better infrastructure experiments
+    - Design architectures based on changing requirements
+    - Drive architectures using data
+    - Simulate big spikes and one-time-off events
+- Based on five pillars that work in synergy and are not something to make trade-offs with
+
+## Well-Architected Tool
+
+- Service that tracks performance of workloads against the Well-Architected framework principles
+- Works by defining existing cloud workloads and get advice on improving their architecture
+- Based on a set of questions related to the pillars and system performance over time
+
+## AWS Trusted Advisor
+
+- High-level automated account assessment
+- Provides recommendation on performance, fault tolerance, security, cost optimization and service limits
+- Core checks available for everyone, advanced checks for Business and Enterprise plans
+
+## Pillar 1: Operational Excellence
+
+- Ability to run and monitor systems to deliver business value and continually improve supporting processes and procedures
+- Infrastructure as Code
+- Automatic annotated documentation after every build
+- Small, frequent and reversible changes
+- Refine operations frequently
+- Design for failure and learn from failures
+- Key services
+    - CloudFormation
+    - AWS Config
+    - CloudWatch, CloudTrail
+    - X-Ray
+    - CodeCommit, CodeBuild, CodeDeploy, CodePipeline
+
+## Pillar 2: Security
+
+- Ability to protect information, systems and assets while delivering business value through risk assessment and mitigation strategies
+- Strong identity foundation ⇒ Centralized privilege management, least privilege, IAM roles
+- Traceability ⇒ Log and metrics that trigger alarms to respond to events
+- Security at every layer
+- Automate security best practices
+- Protect data in transit and at rest while keeping people away from data
+- Prepare for security events
+- Key services
+    - IAM, STS, Organizations, KMS
+    - AWS Config
+    - CloudWatch, CloudTrail
+    - CloudFront, VPC, WAF, Shield, Inspector, ELB
+    - S3, RDS, EBS
+
+## Pillar 3: Reliability
+
+- Ability to recover from disruptions, dynamically scale to meet demand and mitigate disruptions such as misconfigurations or network issues
+- Automated tests of recovery procedures
+- Automatic recover from failure
+- Horizontal scaling to increase system availability
+- Don't guess capacity but provision as necessary
+- Key services
+    - IAM, VPC, Trusted Advisor
+    - Auto Scaling, Backups, CloudFormation
+    - CloudWatch, CloudTrail
+    - Route 53, S3
+
+## Pillar 4: Performance Efficiency
+
+- Ability to use computing resources efficiently to meet system requirements and maintain efficiency as technology evolves and demand changes
+- Quickly adapt to advanced technologies
+- Leverage serverless architectures
+- Experiment often
+- Be aware of all AWS services that can solve certain needs
+- Key services
+    - Auto Scaling, Lambda, SAM, EBS, Aurora
+    - CloudFormation, Config
+    - CloudWatch, CloudTrail
+
+## Pillar 5: Cost Optimization
+
+- Ability to run system that deliver business value at the lowest price point
+- Adopt a consumption model and pay for what you use
+- Measure overall efficiency with metrics and logs
+- Move workflows to the cloud to reduce CAPEX
+- Analyze and attribute expenditures across all systems users
+- Use managed applications to reduce cost of ownership
+- Key services
+    - Budgets, Cost and Usage Reports, Cost Explorer
+    - Spot instances/fleets, reserved instances, Glacier
+    - Auto Scaling, Lambda, Trusted Advisor Checks
 
 # **Identity Access Management (IAM)**
 
