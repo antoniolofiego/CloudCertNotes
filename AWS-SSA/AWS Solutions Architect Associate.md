@@ -17,6 +17,12 @@
     - Help reduce the load on CloudFront origin resources
     - Larger cache-width than any individual edge location so TTL can be longer
 
+# Well-Architected Framework
+
+## Well-Architected Framework Overview
+
+- Describes design principles and architectural best practices for designing and running workloads in the cloud
+
 # **Identity Access Management (IAM)**
 
 ## Key Features of IAM
@@ -2877,6 +2883,134 @@
 - Route Table can specify which VPCs can talk among each other
 - Works with VPCs, Direct Connect Gateway and VPN Connections
 - Supports IP Multicast (only AWS service to do so)
+
+# Other Services and Tools in AWS
+
+## CI/CD Overview
+
+- Continuous Integration (CI) ⇒ Code is built and tested every time it is committed to a repository
+- Continuous Delivery (CD) ⇒ Code is immediately deployed after it is built and tested
+- Quicker turnaround and faster development time
+
+## CI/CD in AWS
+
+- Code ⇒ CodeCommit
+- Build and Test ⇒ CodeBuild
+- Deploy and Provision ⇒ Elastic Beanstalk or Amplify or CodeDeploy/CloudFormation
+- Pipeline orchestrators ⇒ CodePipeline
+
+## CloudFormation
+
+- Declarative framework to outline infrastructures build out of any AWS service
+- Makes it easy to reproduce provisioning of resources and services through code
+- Automatically tags infrastructures created by CloudFormation templates to ease cost control
+- CloudFormation figures out the order and orchestration of the resources
+- Deleting a CloudFormation stack will delete every resource created by the template
+- You can destroy and create infrastructures quickly and in a controlled/scheduled way
+- Plenty of existing CloudFormation templates are available for common infrastructures/stacks
+- A CloudFormation template is made of
+    - Resources ⇒ AWS resources declared to be instantiated (only mandatory field)
+    - Parameters ⇒ Dynamic inputs
+    - Mappings ⇒ Static template variables
+    - Outputs ⇒ References to the created stack
+    - Conditionals ⇒ Conditions that manipulate the creation of the resources
+    - Metadata ⇒ Information about the stack
+    - Helpers ⇒ References and functions needed for the template
+- StackSets
+    - Single operation to CRUD stacks in multiple accounts/regions
+    - Need to use root account to create StackSet, trusted account to CRUD stack instances
+    - When a StackSet is updated, all the associated stacks are updated
+
+## OpsWorks
+
+- Managed Chef and Puppet instances to perform automatic server configurations
+- Fall under the category of Configuration as Code
+- Can automate multiple tasks, including cron scheduling, user accounts, package updates, etc...
+- Use Recipes/Manifests and are open-source tools that work on any cloud provider
+
+## Elastic Container Service (ECS)
+
+- Containter orchestration service that helps run Docker containers on EC2 machines
+- Several services are based on ECS
+    - ECS Core: the basic ECS, running containers on EC2
+    - Fargate: ECS tasks on serverless computing resources
+        - Only set the number of tasks to run and AWS manages the infrastructure
+    - EKS: ECS with Kubernetes
+        - Managed Kubernetes clusters on AWS
+        - Supports EC2 for worker nodes and Fargate for serverless containers
+    - ECR: Docker Container Registry hosted by AWS
+        - Stores all your containers before running
+        - Integrates with IAM
+        - Images are encrypted in flight (HTTPS) and at rest
+- Used for microservices, batch processing or scheduled tasks or migration of legacy application to the cloud
+- To setup, you need to install an ECS agent on the EC2 instance or use ECS-ready Linux AMI
+- Important configuration setting for ECS (in the `/etc/ecs/ecs.config` file)
+    - `ECS_CLUSTER` ⇒ Assign container to ECS cluster
+    - `ECS_ENGINE_AUTH_DATA` ⇒ Used to pull Docker images from private registries
+    - `ECS_AVAILABLE_LOGGING_DRIVERS` ⇒ Connect with CloudWatch for logging
+    - `ECS_ENABLE_TASK_IAM_ROLE` ⇒ Enable IAM Roles
+- ECS terminology
+    - ECS Cluster ⇒ A set of EC2 instances
+    - ECS Service ⇒ Definitions of the applications running on a Cluster
+    - ECS Task and Definition ⇒ Containers running to complete a service
+    - ECS IAM Task Role ⇒ Each container has a role assigned to interface with AWS resources
+- ALB-ECS integration
+    - Allows multiple instances of the same application on one EC2 instance via Port Mapping
+    - Optimize instance performances and increase resiliency of the application without scaling
+
+## Step Functions
+
+- Serverless orchestration for Lambda functions and workflows
+- Represent flow as JSON state machine
+- Integrates with many other services such as ECS, EC2, API Gateway, etc...
+- 1 year maximum execution time
+
+## Simple Workflow Service (SWS)
+
+- Orchestration of work among applications
+- Basically a non-serverless version of Step Functions (runs on EC2)
+- 1 year maximum execution time
+- Effectively phased out for Step Functions
+
+## AppSync
+
+- GraphQL as a Service
+- Store and sync data across mobile/web apps in real time
+- Uses GraphQL
+- Integrates with DynamoDB and Lambda Functions
+- Offline data sync and real-time subscriptions
+- Can set granular levels of security
+
+## Elastic MapReduce (EMR)
+
+- Creates Hadoop clusters for analysis and processing of big data
+- Automatically creates EC2 instances to distribute workflows on and autoscales
+- Supports Hadoop, Spark, HBase, Presto, Flink and other engines
+
+## Glue
+
+- Fully managed ETL service
+- Uses Spark in the backend
+- Automates data preparation for analytics
+- Performs schema inference on crawled data and can automatically generate code
+- Works with Aurora, RDS, S3 and Redshift
+- Glue Data Catalog ⇒ Metadata of the source tables
+
+## Workspaces
+
+- Managed Cloud Desktops
+- On-demand Virtual Desktops
+- Secure and encrypted, integrates with Microsoft Active Directory
+
+## Elastic Transcoder
+
+- Serverless service to convert media files stored in S3 in various formats
+- Can manipulate bitrate, thumbnail, watermarks, encryption, DRM, captions, etc...
+- To run Elastic Transcoder you need to define
+    - Jobs ⇒ What the transcoder has to do
+    - Pipeline ⇒ Queue of the various jobs
+    - Preset Templates ⇒ Used to convert media from one format to another
+    - Notifications ⇒ Via SNS, SQS or others
 
 # Cloud Architectures Topics
 
