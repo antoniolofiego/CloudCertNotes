@@ -646,3 +646,153 @@ CLI v1 ⇒ `$(aws ecr get-login --no-include-email --region <region>)`
 - Enabled by default, used for governance, compliance and audit
 - Logs from CloudTrail can be put in CloudWatch Logs
 - If resources are deleted, look in CloudTrail first
+
+# Simple Queue Service (SQS)
+
+## SQS Overview
+
+- A queue that works on a producer-consumer pattern to decouple applications
+- Producers send messages to the queue via `SendMessage` API call
+- Consumers poll the queue for messages, process them, and delete them via `DeleteMessage` API
+- Consumers can scale in ASG by monitoring `ApproximateNumberOfMessages` CloudWatch metric
+- Standard Queue
+    - Unlimited throughput and unlimited messages in the queue
+    - Message stays in the queue up to 14 days, default of 4
+    - Low latency between publish and receive
+    - 256KB maximum size of message
+    - Delivers at least once (can have duplicates) and messages can be out of order (best effort)
+- FIFO Queue
+    - Messages are delivered in order and only once
+    - Supports up to 300 API calls per second or 3000 with message batching
+    - Currently there is no integration with SNS
+    - Deduplicates messages in 5 minutes intervals, either by message content SHA-256 hash or specific deduplication ID
+    - Can group messages using a `MessageGroupID` parameter, with one consumer per ID
+
+## SQS Visibility Timeout
+
+- When a message is polled by a consumer it becomes invisible to other consumers
+- The time of invisibility is defined by the Visibility Timeout setting, default 30 seconds
+- This is the time during which the consumer can process the messages
+- If the consumer fails to process/delete the message in time it is made visible again in the queue
+- Consumers can request more time by issuing calls to the `ChangeMessageVisibility` API
+
+## SQS Dead Letter Queue
+
+- If a message fails to be processed they are placed back in the queue
+- If messages are placed back in the queue for too many times, they are put in a separate queue
+- This queue can be used for debugging or other tasks
+- Messages in the DLQ still do expire, so they need to be handled before expiration
+
+## SQS Delay Queue
+
+- Messages are delayed by a certain time before they are available to consumers
+- Default is 0 seconds
+
+## SQS Long Polling
+
+- Consumers can wait for messages to be delivered in a queue if there are none available
+- Reduces the amount of poll requests API calls and improves efficiency and latency as we ensure messages are read as soon as they are available in the queue
+- Can be set between 0 and 20 seconds at the queue level or at the API call level
+
+## SQS Extended Client
+
+- Java library to use S3 as the repository for large data that we want to send via SQS
+- Data is stored in S3 and metadata about the S3 location is sent as a message via SQS
+
+## SQS API Calls
+
+- `CreateQueue`
+- `MessageRetentionPeriod`
+- `DeleteQueue`
+- `PurgeQueue` ⇒ Clear all messages in queue
+- `SendMessage`
+- `DelaySeconds` ⇒ Set delay time
+- `ReceiveMessage`
+- `DeleteMessage`
+- `ReceiveMessageWaitTimeSeconds` ⇒ Specify long polling at API call level
+- `ChangeMessageVisibility` ⇒ Change message visibility timeout
+- Batch API calls for `SendMessage`, `DeleteMessage`, `ChangeMessageVisibilty`
+
+# Simple Notification Service (SNS)
+
+## SNS Overview
+
+- Pub/Sub model for messaging and notifications
+- A publisher publishes a message to a topic and all topic subscribers receive that message
+- Can have really large numbers of subscribers to a topic (up to 10M) and up to 100K topics
+- All subscribers receive the message unless there are filters in place
+- Subscribers can be SQS,  Lambda, HTTP/S with retries, email, SMS or mobile push notifications
+- Integration with multiple AWS services as SNS publishers
+
+## Fan Out Pattern with SNS and SQS
+
+- Used to publish the same message in multiple SQS queues
+- Publish to an SNS topic and subscribe multiple queues to that topic
+- Send message once, receive it multiple times
+- SNS can't send messages to FIFO queues at the moment
+- Use cases can be reacting to S3 events, as S3 can't send multiple messages by default
+
+# Kinesis
+
+## Kinesis Overview
+
+- Managed real-time big data streaming alternative to Apache Kafka
+- Data is replicated to 3 AZs
+- Three separate products
+    - Kinesis Stream ⇒ Streaming ingestion of real-time data at scale
+    - Kinesis Firehose ⇒ Streaming data redirection tool
+    - Kinesis Analytics ⇒ Real-time analytics on streams using SQL
+
+## Kinesis Stream
+
+- Divided in ordered shards, which are individual queues that retain data between 1 and 7 days
+- Shards are provisioned, so billing is on a per-shard basis
+- Can increase or decrease number of shards (resharding and merging)
+- Producers publish data on one of the shards and consumers read data from either shard
+- Data in shards can be processed multiple times during retention period but can't be deleted
+- Multiple consumers can consume data from the same stream
+- Producers write up to 1MB/s or 1000 messages/s per shard
+- Consumers read up to 2 MB/s per shard
+- Can batch send messages for increased efficiency
+- Messages are ordered per shard
+- Producers send data via SDK, consumers receive data via SKD or Kinesis Client Library (KCL)
+
+## Sending Data to Kinesis
+
+- `PutRecord` API call requires data and a partition key
+- Messages are allocated among shards based on the hash of the partition key
+- Same partition key always goes to the same shard
+- Each message gets an always increasing sequence number once it is sent to a shard
+- If the partition key is repeated often, certain shards are overloaded (hot partition problem)
+- If one shard is overloaded, we get a `ProvisionedThroughputExceeded` exception
+
+## Kinesis Client Library (KCL)
+
+- Java Library that helps read records from a shard using distributed applications
+- Each shard can be read by one KCL instance ⇒ 1:1 Shard/KCL ratio
+- Progress is tracked via DynamoDB tables
+- Can be deployed on EC2, Elastic Beanstalk or other
+
+## SQS vs SNS vs Kinesis
+
+- SQS
+    - Consumer poll messages
+    - Data is deleted after consumption
+    - As many consumers as we want
+    - Can delay individual message
+    - No throughput provisioning
+    - No ordering guarantees (except FIFO streams)
+- SQS
+    - Consumer subscribe to topics, messages are pushed
+    - Up to 10M subscribers and 100k topics
+    - Data is lost if not delivered
+    - No throughput provisioning
+    - Integrates with SQS for fan out architecture
+- Kinesis
+    - Consumer pull data
+    - As many consumers as we want
+    - Can replay data
+    - Real-time big-data, ETL and analytics
+    - Ordering at shard level
+    - Temporary data retention
+    - Must provision throughput
