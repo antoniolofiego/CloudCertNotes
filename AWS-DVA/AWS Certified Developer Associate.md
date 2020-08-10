@@ -459,3 +459,190 @@ CLI v1 ⇒ `$(aws ecr get-login --no-include-email --region <region>)`
     - HTML5
 - Issue tracking integration with Jira and GitHub issues
 - Integrates with Cloud9, AWS web-based IDE
+
+# CloudFormation
+
+## CloudFormation Overview
+
+- Declarative way of describing AWS infrastructures for almost any resources
+- Infrastructure as Code
+    - No resources are created manually
+    - Version control the entire infrastructure
+    - Can review infrastructure changes in code and not via the console
+    - Can optimize resource usage by creating and destroying stacks on schedule
+- Cost tracking becomes easier as you can tag every resource and get stack estimates
+- Can create as many stacks as needed to separate layers
+- Template can't be updated but new ones have to be uploaded (S3 versioned in the background)
+- Deleting a stack deletes all resources created with it
+- Templates can be built in the console or using YAML/JSON files deployed via CLI
+- All functions can take the form `Fn::<function>` or `!<function>`
+
+## CloudFormation Resources
+
+- Only mandatory field in a CloudFormation template
+- Represent AWS services and resources
+- A resource can reference other resources
+- Resources have identifiers formatted as `AWS::<product-name>::<data-type>`
+
+## CloudFormation Parameters
+
+- Parameters are dynamic inputs provided to CloudFormation templates
+- Used to reuse templates with different sets of inputs
+- Referenced using `!Re`
+
+## CloudFormation Mappings
+
+- Mappings are fixed variables within CloudFormation templates
+- Used to differentiate across environment, resource types, regions, etc...
+- Used in case you know in advance all the possible values that something can take
+- Accessed via `!FindInMap [ mapName, TopLevelKey, SecondLevelKey ]`
+
+## CloudFormation Outputs
+
+- Output values that can be referenced in other stacks
+- Can be accessed via console or via CLI
+- Allows for cross-stack interfacing to define portions of the stack in different templates
+- You can't delete a stack if its outputs are referenced by other stacks
+- Imported using `ImportValue`
+
+## CloudFormation Conditionals
+
+- Used to control creation of resources based on certain conditions
+- Each condition can reference another condition, a parameter or a mapping
+- Different set of conditions
+    - `!And`
+    - `!Equals`
+    - `!If`
+    - `!Not`
+    - `!Or`
+
+## CloudFormation Intrinsic Functions
+
+- `!Ref` ⇒ Used to reference parameter values, resources ID,
+- `!GetAtt` ⇒ Returns value for a specified attribute from a set
+- `!FindInMap` ⇒ Return a named value from a key
+- `!ImportValue` ⇒ Import output from another stack
+- `!Join [ delimiter, [ comma-delimited list ] ]` ⇒ Join values with a delimiter
+- `!Sub - String - ${ VarName: VarValue }` ⇒ Substitute values
+
+## CloudFormation Rollback
+
+- Default behavior after a stack creation failure is to delete everything that was created
+- Can select to prevent rollback and just leave the stack in an incomplete state on failure
+- If a stack update fails, the stack is rolled back to the previous known working state
+
+## CloudFormation Nested Stacks
+
+- Stacks that are parts of other stacks
+- Used to isolate repeated components and reuse them across different stacks
+- Cross stacks vs Nested Stacks
+    - Cross stacks ⇒ Stacks have different lifecycles and are based on Outputs Exports
+    - Nested stacks ⇒ Components are only part of the root stack
+
+## CloudFormation StackSets
+
+- Stack compositions that are created/updated/deleted all at once across regions/accounts
+- Root account can create the StackSets, trusted accounts can create/update/delete stack instances from StackSets
+
+# AWS Monitoring
+
+## CloudWatch
+
+- Provides metrics for every service in AWS
+- CloudWatch Metrics
+    - Metrics are variables grouped by namespace that can be monitored over time
+    - Each metric has dimensions, which are attributes of metrics (instance ID, etc...)
+    - Up to 10 dimensions per metric
+    - EC2 Detailed Monitoring
+        - EC2 instances by default deliver metrics every 5 minutes
+        - With Detailed Monitoring you can get metrics every minute for an extra cost
+        - Used for quicker ASG scaling prompts
+        - 10 free Detailed Monitoring metrics in free tier
+- CloudWatch Custom Metrics
+    - User defined metrics
+    - Can segment by dimensions
+    - 1 minute resolution, up to 1 second resolution
+    - Sent to CloudWatch via `PutMetricData` API Call
+- CloudWatch Alarms
+    - Used to trigger notification for metrics
+    - Can be directed to SNS, EC2, ASG and other services
+    - Alarms have different trigger quantities (min/max, percentages, etc...)
+    - Metrics are evaluated in periods of seconds (only 10 or 30 seconds for custom metrics)
+    - Multiple alarm states
+        - OK
+        - INSUFFICIENT_DATA
+        - ALAM
+- CloudWatch Logs
+    - Can be sent to CloudWatch via SDK
+    - Correct IAM Permissions are needed to send logs to CloudWatch
+    - Can have expiration date
+    - Many services can send logs natively (Elastic Beanstalk, ECS, Lambda, VPC Flow Logs, API Gateway, CloudTrail, Route53, etc...)
+    - Can be analyzed via S3/Athena or ElasticSearch clusters
+    - Log Architecture
+        - Log groups ⇒ Arbitrary names representing application, KMS security at this level
+        - Log streams ⇒ Instances of logs within applications/log files
+    - Metric Filter
+        - Filter expressions that look for specific occurrences in logs
+        - Can be used to trigger alarms
+        - They are not retroactive ⇒ Filtering happens only for data created after the filter
+- CloudWatch Agents
+    - Software that pushes logs to CloudWatch from EC2 instances/on-prem servers
+    - Need the correct IAM Permission
+    - Two versions of the agent
+        - Logs agent ⇒ Old version, only send to CloudWatch Logs
+        - Unified agent ⇒ New version, more system-level metrics (CPU, Disk metrics, RAM, network, processes), manage configuration via SSM Parameter Store
+- CloudWatch Events
+    - Events that are triggered either on a schedule or reacting to a service pattern
+    - Trigger Lambdas. SNS/SQS/Kinesis messages
+    - Returns a JSON file with information about the event
+
+## EventBridge
+
+- Upgraded version of CloudWatch events
+- Advanced event busses for AWS that can be accessed by other AWS accounts
+- Default Event Bus ⇒ from AWS services
+- Partner Event Bus ⇒ from third party SaaS services or applications
+- Custom Event Bus ⇒ from proprietary applications
+- Schema Registry
+    - Events in EventBridge can be analyzed to infer a schema
+    - These schemas can be stored and versioned
+    - Code can be generated for applications to correctly process the event data
+
+## X-Ray
+
+- Distributed application graphical debugger and analyzer built for microservices architecture
+- Allows to troubleshoot performance, errors and service issues, track dependencies and visualize request behavior
+- Compatible with Lambda, Beanstalk, ECS, ELB, API Gateway, EC2
+- Works by tracing requests as they flow through the infrastructure with each service adding data
+- Applications sends data in segments and sub-segments
+- An end-to-end collection of segments is called a trace
+- Traces can be annotated with indexed key-value pairs called annotations that can be filtered or non-indexed metadata that can't be filtered
+- X-Ray SDK must be added to the code (Java, Python, Go, Node.js, .NET)
+- X-Ray Daemon or X-Ray Integration must be installed/enabled on the service
+    - `curl` on EC2 servers
+    - `ebconfig` in Elastic Beanstalk or via console
+    - Needs correct IAM permissions
+- X-Ray sampling
+    - Default sampling is first requests each second and 5% of every additional request
+    - Can be adjusted to reduce the amount of requests that flow through X-Ray
+    - Can adjust reservoir (minimum per second) and rate (percentage of additional requests)
+    - Custom sampling does not require SDK changes as they are handled by the Daemon
+- X-Ray APIs
+    - `PutTraceSegments` ⇒ Uploads segment documents to X-Ray
+    - `PutTelemetryRecords` ⇒ Used by X-Ray Daemon to upload telemetry
+    - `GetSamplingRules` ⇒ Retrieve all sampling rules to know what data to send and when
+    - `GetServiceGraph` ⇒ Returns main graph
+    - `BatchGetTraces` ⇒ Retrieve all the traces specified by the ID
+    - `GetTraceSummaries` ⇒ Get ID and annotations for traces in a specified time frame
+    - `GetTraceGraph` ⇒ Service graph for one or more specific trace IDs
+- X-Ray on ECS
+    - ECS Cluster ⇒ One Daemon as a container in each instance
+    - ECS Cluster Sidecar ⇒ One Daemon for each container in each instance
+    - Fargate Sidecar ⇒ One Daemon for each container in each task
+
+## CloudTrail
+
+- Provides history of API calls made within AWS account by console, SDK, CLI or AWS services
+- Enabled by default, used for governance, compliance and audit
+- Logs from CloudTrail can be put in CloudWatch Logs
+- If resources are deleted, look in CloudTrail first
