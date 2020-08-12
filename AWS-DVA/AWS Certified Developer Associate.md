@@ -796,3 +796,185 @@ CLI v1 ⇒ `$(aws ecr get-login --no-include-email --region <region>)`
     - Ordering at shard level
     - Temporary data retention
     - Must provision throughput
+
+# AWS Lambda
+
+## Lambda Overview
+
+- Virtual serverless functions
+- Up to 15 minutes of execution
+- Run on demand
+- Scales based on number of requests
+- Multiple languages
+    - Python
+    - Node.js
+    - Java
+    - C# (.NET Core and Powershell)
+    - Go
+    - Ruby
+    - Custom Runtime for community supported languages
+- Key Integrations
+    - API Gateway
+    - DynamoDB
+    - Kinesis
+    - S3
+    - CloudWatch Logs
+    - CloudWatch Events/Event Bridge
+    - CloudFront (Lambda@Edge)
+    - SNS/SQS
+    - Cognito
+- Limitations
+    - RAM ⇒ 128MB to 3,008MB in 64MB increments
+    - Max execution time ⇒ 15 minutes
+    - Environment Variables ⇒ 4KB
+    - Disk capacity ⇒ 512MB
+    - Concurrent executions ⇒ 1000
+    - Compressed code size ⇒ 50MB
+    - Uncompressed code size ⇒ 250MB (use `/tmp` for other files)
+
+## Lambda Configuration
+
+- RAM
+    - 128MB to 3,008MB in 64MB increments
+    - The more ram, the more vCPU credits
+    - 1 full vCPU at 1792MB, so multithreading is necessary to benefit after that
+    - If the function is CPU heavy, increase RAM to have more CPU
+- Timeout
+    - 15 minutes maximum running
+    - 3 seconds default
+- Lambda Layers
+    - Allows creation of custom runtimes (like C++ or Rust)
+    - Allows externalization of dependencies for reuse across different Lambdas
+- Execution Context
+    - Temporary runtime environment that initializes all dependencies
+    - It is maintained for a while after execution for other Lambda invocations
+    - Best practice is to initialize resources/connections outside of the handler
+    - Can store temporary files or use disk space by leveraging the `/tmp` directory (Max 512MB)
+    - Files in the `/tmp` directory are tied to the execution context and persist while it is frozen
+- Dependencies
+    - To use dependencies, install the packages alongside the code and zip it all together
+- Deploying via CloudFormation
+    - Inline ⇒ Write the function in the CF Template but can't use dependencies
+    - S3 ⇒ Zip into S3 and refer to it in the CF template but on update, you have to update both S3 and CF
+- Versioning
+    - Can publish immutable versions of Lambda functions if we are ready to publish them
+    - A version consists of the code and dependencies and can't be changed
+    - Versions have increasing version numbers and get their own ARN
+- Aliases
+    - Versions can be referenced by Aliases ⇒ Pointers to specific versions of Lambda functions
+    - Aliases are mutable, so you can change which version they are pointing to
+    - Alias can be defined with any name, but sensible naming is helpful (dev, test, prod, etc...)
+    - Aliases enable blue/green deployments by assigning weights to aliases
+    - Aliases enable stable configuration of triggers/destinations as they can be used as targets
+    - Aliases can't reference other aliases
+
+## Lambda Synchronous Invocation
+
+- Calls made via CLI, SDK, API Gateway, S3 Batch, CloudFront, ALB, etc...
+- Results are returned immediately
+- Errors are handled on the client side
+- You can use API Gateway or ALB to let users invoke Lambda functions from HTTP
+- When going through ALB, the Lambda has to be part of a target group
+- HTTP requests are transformed into JSON and converted back to HTTP response by ALB
+- ALB handles Multi-Header values via specific setting
+- Synchronous Services
+    - API Gateway
+    - CloudFront (Lambda@Edge)
+    - ALB
+    - S3 Batch
+    - Step Functions
+    - Cognito
+    - Kinesis Data Firehose
+    - Others...
+
+## Lambda Asynchronous Invocation
+
+- Calls made via S3, SNS, CloudWatch Events
+- Events are placed in an internal Event queue
+- Lambda retries up to three times on errors
+- In case of retries, it's important that the lambda function always returns the same value with the same inputs (idempotency) in order to catch them as duplicates in CloudWatch Logs
+- DLQ for failed processing
+- Asynchronous services
+    - S3 Events
+        - Can be enabled on most S3 events (`ObjectCreated`, `ObjectRemoved`, etc...)
+        - Enabling versioning ensures event notification for each successful write
+    - CloudWatch Events/EventBridge
+        - Can be triggered on a schedule via CRON or Fixed Rate
+        - EventBridge Rule for CodePipeline for triggering Lambda on State Changes
+    - SNS
+    - CloudWatch Logs
+    - CodeCommit/CodePipeline
+    - CloudFormation
+    - Others
+
+## Lambda Event Source Mapping
+
+- Calls made via Kinesis Data Stream, SQS/SQS FIFO and DynamoDB Streams
+- Records are polled from the source in all three cases
+- The event source mapping polls the source and invokes the Lambda synchronously
+- Event Streams (for DynamoDB Streams and Kinesis)
+    - Iterator for each shard and processes items in order
+    - One Lambda invocation per stream shard or up to 10 batches if using parallelization
+    - Can read starting from different positions, either at specific timestamps or new/old items
+    - Processed items are not deleted from the stream
+    - Low traffic ⇒ Batch window to accumulate records
+    - High traffic ⇒ Parallel multi-batch processing (10 batches per shard)
+    - On error in a batch process, the entire batch is reprocessed until no error or expiration
+    - Event source mapping can be configured to discard events, restrict retries or split batches
+    - Discarded events go to destinations
+- Queue (for SQS/SQS FIFO)
+    - Queue is polled by event source mapping using long polling
+    - Batch between 1 to 10 messages, up to 1000 batches per second
+    - Queue visibility timeout should be set 6x the Lambda function timeout
+    - Can use DLQ by associating one directly to SQS, not to the Lambda
+    - Lambda scales up to process standard queues as quickly as possible, 60 per minute
+    - Lambda scales up to the number of active message groups for FIFO queues (by GroupID)
+    - If an error occurs, batches are returned to queue individually and might be reprocessed in different batches
+    - Lambda might process the same item twice
+    - Lambda deletes items from queues after successful processing
+
+## Lambda Destinations
+
+- Successful or failed event results can be sent to destinations
+- Asynchronous invocations (both failed and successful events)
+    - SQS
+    - SNS
+    - Lambda
+    - EventBridge Bus
+- Event Source Mapping (only for discarded events on Kinesis/DynamoDB)
+    - SQS
+    - SNS
+
+## Using Lambda in a personal VPC
+
+- By default, launched in an AWS-owned VPC so can't access your VPC's resources
+- You can deploy it in your VPC by assigning it a VPC ID, security group and role
+- Lambdas in a subnet, either private or public, don't have internet access or public IPs
+- You need a NAT Gateway to give it access to the public internet
+- DynamoDB can be accessed via IGW or via VPC Endpoint
+
+## Lambda Concurrency
+
+- Up to 1000 global concurrent executions
+- Can set a limit to concurrent executions by setting a reserve concurrency at the function level
+- Every call above the reserve concurrency triggers a throttle
+- If there are no limits set, uptick in invocations from one Lambda can throttle all other Lambdas
+- For asynchronous invocations, Lambda will put the request back in the queue automatically for up to 6 hours after a throttling error (429) or a system error (5xx) and reduce the retry interval
+- Can allocate concurrency before invocation with provisioned concurrency to prevent cold start
+
+## CodeDeploy automations
+
+- Used to programmatically shift traffic among Lambda aliases
+- Integrates with SAM templates
+- Deployment strategies
+    - Linear ⇒ Grow by X% every N minutes
+    - Canary ⇒ Try X% then go to 100% after N minutes
+    - AllAtOnce ⇒ 100% right away
+- Rollback strategies are assigned using `PreTraffic` and `PostTraffic` hooks
+
+## Lambda Best Practices
+
+- Minimize handler work by moving heavy-duty tasks outside of it
+- ENV variables for DB connections, passwords and similar (leverage KMS)
+- Minimize deployment package size by using layers and breaking down functions
+- Never use recursion in Lambdas
