@@ -978,3 +978,137 @@ CLI v1 ⇒ `$(aws ecr get-login --no-include-email --region <region>)`
 - ENV variables for DB connections, passwords and similar (leverage KMS)
 - Minimize deployment package size by using layers and breaking down functions
 - Never use recursion in Lambdas
+
+# DynamoDB
+
+## DynamoDB Overview
+
+- Fully managed, highly-available, distributed NoSQL datastore
+- Millions of requests per second, trillions of rows, 100s of TB of storage
+- Consistent low-latency performance
+- IAM integration and event-driven programming using DynamoDB Streams
+- Can migrate to DynamoDB from different DBs using DMS
+
+## DynamoDB Table
+
+- Each table has a Primary Key
+- Made of items, can have infinite number of items but each item's max size is 400KB
+- Each item has attributes, they can be null, can be added over time and can be nested
+- Supports scalar, document and set data types
+- Can be used for session state cache
+- Can have Global Tables, that are multi-region, fully replicated, and high performance
+- Concurrency Model
+    - DynamoDB is Optimistic Locking database
+    - Optimistic locking
+        - Assumes that no conflict will occur
+        - Data are read, the transaction processed, updates are issued, and then a check is made to see if conflict occurred
+        - If a conflict occurred it is rolled back and repeated until successful
+    - Items can be updated while being sure that it has not changed before further alterations
+    - Writes can be conditional (based on previous conditions) or atomic (increase by x)
+- TTL
+    - Can define a per-row TTL to mark items for automated deletion after certain date/time
+    - The TTL is a Number attribute with an UNIX epoch timestamp as expiration date
+- Table Operations
+    - Cleanup
+        - Scan and Delete ⇒ Slow, expensive, inefficient
+        - `DeleteTable` and recreate ⇒ Fast, cheap and efficient
+    - Copy
+        - Use AWS DataPipeline (leverages EMR) ⇒ Best solution
+        - Create a backup and restore it in a new table ⇒ Might take some time
+        - Scan and Write ⇒ Super inefficient
+
+## Primary Key Types
+
+- Partition key only (hash)
+    - Unique for each item
+    - Diverse so that data is distributed
+- Partition key and Sort key
+    - Combination must be unique
+    - Data is grouped by partition key and sorted by sort key (also called range key)
+- Choosing a Partition key
+    - High cardinality
+    - Maximizes distribution
+- Data is divided in partitions based on the hash of the partition key
+- Can calculate the number of partitions with the formula
+$CEIL(MAX((RCU/3000+WCU/1000),(SIZE/10GB))$
+- Can optimize partitions with Write Sharding, or adding random but predictable suffix to partition keys in order to spread writes across multiple partitions
+
+## RCU and WCU
+
+- Read and write capacities have to be provisioned per table
+- Can set up auto-scaling of RCU/WCU but it's more expensive
+- Throughput can be exceeded temporarily with burst credit but if you don't have any credit you get a `ProvisionedThroughputException` error
+- These errors can be from hot keys, hot partition or very large items
+- Reads can be either Strongly consistent or eventually consistent
+- RCUs and WCUs are spread evenly among partitions
+- Read Capacity Units (RCU)
+    - 1 RCU = 1 strongly consistent read/second or 2 eventually consistent read/second for items up to 4KB
+    - More KB, more RCUs
+    - KBs are rounded up ⇒ 4.5KB item needs 2 WCUs
+- Write Capacity Units (WCU)
+    - 1 WCU = 1 write/second for an item up to 1KB
+    - More KB, more WCUs
+    - KBs are rounded up ⇒ 2.5KB item needs 3 WCUs
+
+## Local Secondary Index (LSI)
+
+- Up to 5 alternate range keys for a table, local to the hash key
+- Must be exactly one scalar attribute, either String, Number or Binary
+- Eventually consistent or strongly consistent reads
+- Partition key must be the same as the base table
+- Shares capacity with base table
+- Defined at table creation time
+
+## Global Secondary Index (GSI)
+
+- Made of partition key and optional sort key
+- Creates a new table where you can project attributes on
+- Has its own provisioned capacity
+- Can be modified or updated whenver
+- Only eventually consistent reads
+- If GSI's WCU are throttled, also the base table's writes will be throttled
+
+## DynamoDB Streams
+
+- A changelog stream of all CUD activities in DynamoDB
+- Built on shards like Kinesis, but automatically provisioned by AWS
+- Can be read by EC2/Lambda (as Event Source Mapping) to react in quasi-real-time to changes
+- Needed for cross-region replication
+- Streams data is retained for 24 hours
+- Can choose what data is sent to the stream
+    - KEYS_ONLY ⇒ Only key attributes of the item
+    - NEW_IMAGE ⇒ Full item after modification
+    - OLD_IMAGE ⇒ Full item before modification
+    - NEW_AND_OLD_IMAGES ⇒ Full item both before and after modification
+
+## DynamoDB Transactions
+
+- All-or-nothing CUD operations on multiple rows in different tables at the same time
+- Consumes twice the amount on RCU/WCU
+
+## DynamoDB Accelerator (DAX)
+
+- Seamless cache for DynamoDB
+- All writes pass though DAX, microsecond latency for cached queries or reads
+- Solves throttling issues for hot key reads
+- 5 minutes TTL, multi-AZ, up to 10 nodes in the cluster
+- Use in combination with ElastiCache if you cache data aggregation results
+
+## DynamoDB APIs
+
+- `PutItem` ⇒ Create or fully replace data
+- `UpdateItem` ⇒ Partial replacement of data
+- `DeleteItem` ⇒ Delete one row/item
+- `DeleteTable` ⇒ Delete entire table
+- `ConditionExpression` ⇒ Conditional write/update based on rules
+- `BatchWriteItem` ⇒ Up to 25 `PutItem`/`DeleteItem` parallel calls (16MB max, 400KB per item)
+- `GetItem` ⇒ Retrieve item based on primary key, eventually consistent by default but can set to strongly consistent
+- `ProjectionExpression` ⇒ Specify which attributes to retrieve
+- `BatchGetItem` ⇒ Up to 100 items at a time (16MB max)
+- `Query` ⇒ Return item based on `PartitionKey`, optional `SortKey` range and client-side `FilterExpression` (Up to 1MB of data or number specified by a limit)
+- CLI related flags
+    - `--project-expression` ⇒ Attributes to retrieve
+    - `--filter-expression` ⇒ Filter results once received
+    - `--page-size` ⇒ Reduce page size for call optimization
+    - `--max-items` ⇒ Maximum number of results returned by call, returns also `NextToken`
+    - `--starting-token` ⇒ Which `NextToken` to use to resume reading
