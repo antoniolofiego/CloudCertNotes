@@ -1225,3 +1225,108 @@ $CEIL(MAX((RCU/3000+WCU/1000),(SIZE/10GB))$
     - Token-based authorizer (JWT, OAuth)
     - Returns ad-hoc IAM Principal and IAM Policy which is cached
     - Authentication is via 3rd party, authorization is via Lambda
+
+# Step Functions
+
+## Step Functions Overview
+
+- Serverless workflow to orchestrate Lambda functions
+- Support sequential calls, parallel calls, conditional calls, timeouts, error handling, etc...
+- Integrates with EC2, ECS, API Gateway, SQS, on-prem servers
+- Can require human approval steps
+- Max execution of 1 year
+
+## Workflows
+
+- Standard workflow
+    - 1 year duration
+    - 2000 execution starts per second
+    - 4000 state transitions per second
+    - Pay per state transition
+    - Execution can be debugged with CloudWatch Logs and Step Function console
+    - Exactly-once execution
+- Express workflow
+    - 5 minutes duration
+    - 100,000+ execution starts per second
+    - Unlimited state transitions per second
+    - Pay per execution, duration and memory consumption
+    - Execution can be debugged with CloudWatch Logs
+    - At-least-once execution
+
+# Amazon Cognito
+
+## Cognito Overview
+
+- Used to provide users outside of your account access to interact with AWS-hosted applications
+- Comprises Cognito User Pools, Cognito Identity Pools and Cognito Sync (which is deprecated)
+
+## Cognito User Pools
+
+- Serverless user database for web and mobile apps
+- Handles login, password reset, email/phone verification, MFA, SAML/OpenID authentication
+- Uses JWT as login output
+- Can use a Hosted UI to handle your website's login
+- Triggers ⇒ Custom Lambda functions that can be triggered at specific authentication stages
+    - Auth events
+        - Pre-authentication ⇒ Custom validation
+        - Post-authentication ⇒ Event logging
+        - Pre-Token generation ⇒ Custom token suppression
+    - Sign-Up events
+        - Pre-signup ⇒ Custom validation
+        - Post-signup ⇒ Custom messages, analytics
+        - Migrate user ⇒ From existing user directory to Cognito User Pools
+    - Messages
+        - Custom message ⇒ Localization or personalization
+    - Token Creation
+        - Pre-Token generation ⇒ Customize token attributes
+
+## Cognito Identity Pools
+
+- Used to provide temporary AWS credentials to access services in our accounts
+- Identity providers include public ones (Facebook, etc...), Cognito User Pool, SAML/OpenID, custom third-party login servers or unauthenticated guest access
+- Users can then access services via API Gateway or directly with Cognito-defined IAM policies
+
+# Identity-related Additional Services
+
+## Security Token Service (STS)
+
+- Temporary (up to 1 hour) access to AWS resources
+- STS APIs
+    - `AssumeRole` ⇒ Role within account or cross account
+    - `AssumeRoleWithSAML` ⇒ User logged in with SAML
+    - `GetSessionToken` ⇒ For MFA
+    - `GetFederationToken` ⇒ For federated users
+    - `GetCallerIdentity` ⇒ Returns caller's IAM user/role detail
+    - `DecodeAuthorizationMessage` ⇒ Decode error message when AWS API call is denied
+
+## AWS Directory Services
+
+- Centralized security/permission management, account creation tool using Active Directory
+- AWS Managed Microsoft AD
+    - Create AD in AWS, manage it locally, use MFA
+    - Trust connection with on-prem AD
+- AWS AD Connector
+    - Proxy redirect to on-prem AD
+    - Users can be managed only on on-prem AD
+- AWS Simple AD
+    - AD-compatible managed directory on AWS
+    - Can't be joined with on-prem AD
+
+# Other Services
+
+## AWS AppSync
+
+- Managed GraphQL service
+- Integrates with DynamoDB, ElasticSearch, Aurora and other services
+- Retrieve real-time data using WebSockets
+- Local data access and synchronization for mobile apps
+
+## AWS SES
+
+- Send email to SMTP interfaces and AWS SDK
+- Receive email with integrations with S3, SNS and Lambda
+
+## AWS Certificate Manager
+
+- Host public SSL certificates in AWS, either AWS provided or third-party provided
+- Integrates with ELB, CloudFront, API Gateway
