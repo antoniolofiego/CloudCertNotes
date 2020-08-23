@@ -585,6 +585,9 @@ CLI v1 ⇒ `$(aws ecr get-login --no-include-email --region <region>)`
         - Filter expressions that look for specific occurrences in logs
         - Can be used to trigger alarms
         - They are not retroactive ⇒ Filtering happens only for data created after the filter
+    - Encryption APIs
+        - `associate-kms-group` ⇒ If the log group already exists
+        - `create-log-group` ⇒ If the group does not exist, automatically associates KMS key
 - CloudWatch Agents
     - Software that pushes logs to CloudWatch from EC2 instances/on-prem servers
     - Need the correct IAM Permission
@@ -1311,6 +1314,89 @@ $CEIL(MAX((RCU/3000+WCU/1000),(SIZE/10GB))$
 - AWS Simple AD
     - AD-compatible managed directory on AWS
     - Can't be joined with on-prem AD
+
+# AWS Key Management Service (KMS)
+
+## KMS Overview
+
+- AWS managed keys to control access to data
+- Full IAM integration for authorization
+- Integrates with most AWS services
+- Full management of keys (creation, enable/disable) and policies (rotation)
+- Key usage is tracked by CloudTrail
+- KMS API calls are billed at $0.03/10,000 calls
+- KMS can encrypt up to 4KB of data per call
+- Envelope Encryption
+    - Used for encrypting data larger than 4KB
+    - Uses `GenerateDataKey` KMS API Call
+    - AWS offers Encryption SDK for Java, Python, C and JavaScript
+    - SDK offers key caching to reduce API calls
+- To access KMS, key policy must allow user and IAM policy must allow API calls
+- KMS Keys are region-specific
+- Key Policies
+    - Control access to KMS keys
+    - Can't control access without policies, so if there's no policy no one can access the key
+    - Default key policy gives full access to root account
+- KMS Quotas
+    - KMS has a global quota for cryptographic operations per second
+    - They are between 5,500 and 30,000 for symmetric keys and 500 or below for asymmetric
+    - If quota is exceeded, requests are throttled
+    - Can increase the quota via CLI/AWS Support or use Key caching to reduce API calls
+
+## KMS Customer Master Keys
+
+- Symmetric ⇒ AES-256
+    - Single encryption key used for both decryption and encryption
+    - AWS Services use symmetric keys
+    - Used in envelope encryption
+    - You will never have access to the unencrypted key but must use KMS API to use it
+- Asymmetric ⇒ RSA and ECC key pairs
+    - Public (encrypt) and private (decrypt) key pair
+    - Used for encryption/decryption and for sign/verify operations
+    - Public key can be downloaded, private key is not accessible
+    - Used for encryption outside of the AWS environment when there's no access to KMS API
+- CMK creation
+    - AWS Managed ⇒ Service default, free
+    - User keys created in KMS ⇒ $1/month
+    - User keys imported (symmetric AES-256) ⇒ $1/month
+
+## KMS API
+
+- `Encrypt` ⇒ Encrypts up to 4KB of data
+- `Decrypt` ⇒ Decrypts up to 4KB of data including data encryption keys (DEK)
+- `GenerateDataKey` ⇒ Generates unique symmetric DEK returns plaintext copy of data key and encrypted version using a CMK that you specify
+- `GenerateDataKeyWithoutPlaintext` ⇒ Used to generate a DEK to be used at a later time, must use `Decrypt` later
+
+# Other security and encryption
+
+## SSM Parameter Store
+
+- Serverless secure storage of secrets and configurations
+- Version control of secrets/configurations
+- Integrates with KMS, CloudFormation, CloudWatch Events
+- Parameter policies ⇒ TTL or notifications related to specific parameters
+- Parameter tiers
+    - Standard
+        - 10,000 total number of parameters stored
+        - 4KB max parameter size
+        - No parameter-specific policies available
+        - Free of charge
+        - Standard throughput free, higher throughput (1000 req/second) $0.05x10,000 calls
+    - Advanced
+        - 100,000 total number of parameters stored
+        - 8KB max parameter size
+        - Parameter-specific policies available
+        - $0.05 per parameter per month
+        - Standard and higher throughput (1000 req/second) $0.05x10,000 calls
+
+## AWS Secrets Manager
+
+- Sole goal of storing secrets but very expensive
+- Only supports encrypted secrets
+- Can force rotation of secrets on schedule
+- Currently supported secrets
+    - Database credentials (RDS, Redshift, DocumentDB, etc...) ⇒ Username/Password
+    - Other secrets (like API keys) ⇒ Key-value pairs
 
 # Other Services
 
