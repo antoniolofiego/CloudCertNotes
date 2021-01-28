@@ -11,7 +11,7 @@ Feel free to contribute with your own notes if you find something that could be 
 | AWS Certified Cloud Practitioner            | https://git.io/JJv6B | Complete ✔️ |
 | AWS Solutions Architect - Associate         | https://git.io/JJfuM | Complete ✔️ |
 | AWS Certified Developer - Associate         | https://git.io/JJW3V | Complete ✔️ |
-| Hashicorp Certified - Terraform Associate   | Upcoming... | In Progress 🛠️ |
+| Hashicorp Certified - Terraform Associate   | https://git.io/JtWEG | In Progress 🛠️ |
 
 ## Great study resources
 
