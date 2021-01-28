@@ -1,16 +1,17 @@
-# AWS Certifications Notes
+# Cloud Certifications Notes
 
-A repository of the notes I take while preparing for AWS Certifications.
+A repository of the notes I take while preparing for Cloud/Tech Certifications.
 
 Feel free to contribute with your own notes if you find something that could be useful for everyone!
 
 **Please note:** These notes are updated in the way I study for the various exams. They probably are not a standalone study tool, as I do not write down repeating material across different notesets. For example, most of the services are covered in the Solutions Architect - Associate exam, so you will not find detailed explanations in the Certified Developer - Associate notes, as it assumes familiarity with the previous material.
 
-| Certification Name                  |         Link         |   Status    |
-| ----------------------------------- | :------------------: | :---------: |
-| AWS Certified Cloud Practitioner    | https://git.io/JJv6B | Complete ✔️ |
-| AWS Solutions Architect - Associate | https://git.io/JJfuM | Complete ✔️ |
-| AWS Certified Developer - Associate | https://git.io/JJW3V | Complete ✔️ |
+| Certification Name                          |         Link         |   Status    |
+| ------------------------------------------- | :------------------: | :---------: |
+| AWS Certified Cloud Practitioner            | https://git.io/JJv6B | Complete ✔️ |
+| AWS Solutions Architect - Associate         | https://git.io/JJfuM | Complete ✔️ |
+| AWS Certified Developer - Associate         | https://git.io/JJW3V | Complete ✔️ |
+| Hashicorp Certified - Terraform Associate   | Upcoming... | In Progress 🛠️ |
 
 ## Great study resources
 
