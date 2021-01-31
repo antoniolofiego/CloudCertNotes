@@ -20,9 +20,7 @@ Configurations can be versioned and stored in source control repositories.
 
     Describe the logic of the computation without specifying the implementation details
 
-# Hands on with Terraform
-
-## Terraform Components
+# Terraform Components
 
 - Terraform Executable
 
@@ -40,7 +38,7 @@ Configurations can be versioned and stored in source control repositories.
 
     A file that keeps track of what has been created and deployed. Maintains a log of the current state of the infrastructure
 
-## Terraform terminology
+# Terraform Terminology
 
 - Variables
 
@@ -76,3 +74,25 @@ Configurations can be versioned and stored in source control repositories.
 - Output
 
     Information and data obtained once the resources are deployed, such as public IPs of instances, DNS records and such
+
+- State
+
+    A JSON formatted file that Terraform builds and maintains automatically to keep track of the current configuration. It includes metadata on specifics about the deployed resources, state versions and other key measures. 
+
+    Certain backends support state locking, meaning that no write operations are allowed to be performed on that specific configuration until the locks are lifted, usually between deployments. 
+
+    State is always stored at least locally in the same folder where your Terraform configuration files are stored but it can be also stored remotely (AWS, Azure, GCP, Terraform Cloud).
+
+    Terraform has the concept of workspaces where each working environment has its own separate state file and when switching between different workspaces Terraform is aware of which workspace it is operating in and references the correct state.
+
+    The state file includes
+
+    - `version`: the version of the state file
+    - `terraform_version`: the version of Terraform that created that file
+    - `serial`: a number that increases every time the state file is updated
+    - `lineage`: a unique ID assigned to a state when it is created
+    - `outputs`: outputs at the end of a deployment
+    - `resources`: list of all the resources that the Terraform configuration has deployed
+- Plan
+
+    A process where Terraform inspects the current state of the configuration, creates a dependency graph to understand the order in which resources can be deployed, calculates additions of new resources and deletions or modifications of existing resources, and finally executes the steps to reach the defined end state. Plans can be saved as `.tfplan` files and applied at later stages or can be applied right away.
