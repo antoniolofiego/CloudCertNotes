@@ -95,4 +95,54 @@ Configurations can be versioned and stored in source control repositories.
     - `resources`: list of all the resources that the Terraform configuration has deployed
 - Plan
 
-    A process where Terraform inspects the current state of the configuration, creates a dependency graph to understand the order in which resources can be deployed, calculates additions of new resources and deletions or modifications of existing resources, and finally executes the steps to reach the defined end state. Plans can be saved as `.tfplan` files and applied at later stages or can be applied right away.
+    A process where Terraform inspects the current state of the configuration, creates a dependency graph to understand the order in which resources can be deployed, calculates additions of new resources and deletions or modifications of existing resources, and finally executes the steps to reach the defined end state. Plans can be saved as `.tfplan` files and applied at later stages or can be applied right away. 
+
+# Terraform Syntax
+
+Terraform uses a specific language for its configuration files, the **HashiCorp Configuration Language** (HCL), which is used in multiple HashiCorp products. It has several benefits over other commonly used file types such as JSON because it is more readable and easily editable, it supports functions, conditionals and other expressions to support more intricate and customizable configurations.
+
+## Object types
+
+- number = `2`
+- string = `"hello"`
+- bool = `true`
+- list = `[ "ubuntu", "amazon-linux" ]`
+- map = `{ id = 4, name = "t2.micro", active = true }`
+
+## References
+
+Reserved keywords in Terraform. The general syntax is `keyword.reference_name.attribute`
+
+- `var` used to reference variables
+- `resource_type` (such as `aws_instance`) to refer to specific resources
+- `local` for local values in the configuration file
+- `module` to reference Terraform modules
+
+## Variable interpolation
+
+Used to insert the value of a reference in a string (think about string literals in JS)
+
+`name = "my-${var.instance-name}"`  
+
+## Retrieving values from lists, maps and data sources
+
+`local.list_of_values[4]` returns the 5th element of the list
+
+`local.map_of_values["name"]` returns the value at the key `"name"` in the map
+
+`data.data_source.full.path.to.resource` to return the specific value from a data source (for example `data.aws_availability_zones.azs.names[0]`)
+
+## Blocks
+
+```yaml
+block_type "label_one" "label_two" {
+
+	key = value
+	key = value
+	
+	block {
+		key = value
+	}
+
+}
+```
