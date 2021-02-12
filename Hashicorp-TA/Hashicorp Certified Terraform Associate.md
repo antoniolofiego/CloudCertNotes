@@ -75,12 +75,12 @@ Used to insert the value of a reference in a string (think about string literals
 
 ## Blocks
 
-```yaml
+```
 block_type "label_one" "label_two" {
 
 	key = value
 	key = value
-	
+
 	block {
 		key = value
 	}
