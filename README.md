@@ -8,7 +8,7 @@ Feel free to contribute with your own notes if you find something that could be 
 
 | Certification Name                          |         Link         |   Status    |
 | ------------------------------------------- | :------------------: | :---------: |
-| AWS Certified Cloud Practitioner            | https://git.io/JJv6B | Complete ✔️ |
+| AWS Certified Cloud Practitioner            | <a href="AWS-CCP/AWS Certified Cloud Practitioner.md"> https://git.io/JJv6B | Complete ✔️ |
 | AWS Solutions Architect - Associate         | https://git.io/JJfuM | Complete ✔️ |
 | AWS Certified Developer - Associate         | https://git.io/JJW3V | Complete ✔️ |
 | Hashicorp Certified - Terraform Associate   | https://git.io/JtWEG | Complete ✔️ |
