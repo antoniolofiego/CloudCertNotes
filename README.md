@@ -6,12 +6,12 @@ Feel free to contribute with your own notes if you find something that could be 
 
 **Please note:** These notes are updated in the way I study for the various exams. They probably are not a standalone study tool, as I do not write down repeating material across different notesets. For example, most of the services are covered in the Solutions Architect - Associate exam, so you will not find detailed explanations in the Certified Developer - Associate notes, as it assumes familiarity with the previous material.
 
-| Certification Name                                                                                            |   Status    |
-| ------------------------------------------------------------------------------------------------------------- | :---------: |
-| [AWS Certified Cloud Practitioner](/CloudCertificationNotes/AWSCertifiedCloudPractitioner.md)                 | Complete ✔️ |
-| [AWS Solutions Architect - Associate](/CloudCertificationNotes/AWSSolutionsArchitectAssociate.md)             | Complete ✔️ |
-| [AWS Certified Developer - Associate](/CloudCertificationNotes/AWSCertifiedDeveloperAssociate.md)             | Complete ✔️ |
-| [Hashicorp Certified - Terraform Associate](/CloudCertificationNotes/HashicorpCertifiedTerraformAssociate.md) | Complete ✔️ |
+| Certification Name                                                                                               |   Status    |
+| ---------------------------------------------------------------------------------------------------------------- | :---------: |
+| [AWS Certified Cloud Practitioner](/CloudCertificationsNotes/AWSCertifiedCloudPractitioner.html)                 | Complete ✔️ |
+| [AWS Solutions Architect - Associate](/CloudCertificationsNotes/AWSSolutionsArchitectAssociate.html)             | Complete ✔️ |
+| [AWS Certified Developer - Associate](/CloudCertificationsNotes/AWSCertifiedDeveloperAssociate.html)             | Complete ✔️ |
+| [Hashicorp Certified - Terraform Associate](/CloudCertificationsNotes/HashicorpCertifiedTerraformAssociate.html) | Complete ✔️ |
 
 ## Great study resources
 
