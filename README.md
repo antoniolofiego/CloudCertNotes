@@ -6,12 +6,12 @@ Feel free to contribute with your own notes if you find something that could be 
 
 **Please note:** These notes are updated in the way I study for the various exams. They probably are not a standalone study tool, as I do not write down repeating material across different notesets. For example, most of the services are covered in the Solutions Architect - Associate exam, so you will not find detailed explanations in the Certified Developer - Associate notes, as it assumes familiarity with the previous material.
 
-| Certification Name                          |         Link         |   Status    |
-| ------------------------------------------- | :------------------: | :---------: |
-| AWS Certified Cloud Practitioner            | <a href="AWS-CCP/AWS Certified Cloud Practitioner.md"> https://git.io/JJv6B | Complete ✔️ |
-| AWS Solutions Architect - Associate         | https://git.io/JJfuM | Complete ✔️ |
-| AWS Certified Developer - Associate         | https://git.io/JJW3V | Complete ✔️ |
-| Hashicorp Certified - Terraform Associate   | https://git.io/JtWEG | Complete ✔️ |
+| Certification Name                          |   Status    |
+| ------------------------------------------- | :---------: |
+| <a href="AWSCertifiedCloudPractitioner.md">AWS Certified Cloud Practitioner</a> | Complete ✔️ |
+| <a href="AWSSolutionsArchitectAssociate.md">AWS Solutions Architect - Associate</a> | Complete ✔️ |
+| <a href="AWSCertifiedDeveloperAssociate.md">AWS Certified Developer - Associate</a> | Complete ✔️ |
+| <a href="HashicorpCertifiedTerraformAssociate.md">Hashicorp Certified - Terraform Associate</a> | Complete ✔️ |
 
 ## Great study resources
 
