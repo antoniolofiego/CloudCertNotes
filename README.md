@@ -8,10 +8,10 @@ Feel free to contribute with your own notes if you find something that could be 
 
 | Certification Name                                                                                               |   Status    |
 | ---------------------------------------------------------------------------------------------------------------- | :---------: |
-| [AWS Certified Cloud Practitioner](/CloudCertificationsNotes/AWSCertifiedCloudPractitioner.html)                 | Complete ✔️ |
-| [AWS Solutions Architect - Associate](/CloudCertificationsNotes/AWSSolutionsArchitectAssociate.html)             | Complete ✔️ |
-| [AWS Certified Developer - Associate](/CloudCertificationsNotes/AWSCertifiedDeveloperAssociate.html)             | Complete ✔️ |
-| [Hashicorp Certified - Terraform Associate](/CloudCertificationsNotes/HashicorpCertifiedTerraformAssociate.html) | Complete ✔️ |
+| [AWS Certified Cloud Practitioner](/CloudCertNotes/AWSCertifiedCloudPractitioner.html)                 | Complete ✔️ |
+| [AWS Solutions Architect - Associate](/CloudCertNotes/AWSSolutionsArchitectAssociate.html)             | Complete ✔️ |
+| [AWS Certified Developer - Associate](/CloudCertNotes/AWSCertifiedDeveloperAssociate.html)             | Complete ✔️ |
+| [Hashicorp Certified - Terraform Associate](/CloudCertNotes/HashicorpCertifiedTerraformAssociate.html) | Complete ✔️ |
 
 ## Great study resources
 
