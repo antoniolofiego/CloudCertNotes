@@ -1,6 +1,6 @@
 # Cloud Certifications Notes
 
-A repository of the notes I take while preparing for Cloud/Tech Certifications.
+A repository of the notes I take while preparing for Cloud and Tech Certifications.
 
 Feel free to contribute with your own notes if you find something that could be useful for everyone!
 
